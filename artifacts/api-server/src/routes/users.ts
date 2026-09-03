@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import { db, usersTable, accountsTable, likesTable } from "@workspace/db";
-import { eq, desc, sql, ne, and, isNull } from "drizzle-orm";
+import { eq, desc, sql, ne } from "drizzle-orm";
 
 const router = express.Router();
 
@@ -80,7 +80,11 @@ router.get("/leaderboard", async (req, res) => {
 });
 
 router.get("/:userId", async (req, res) => {
-  const userId = parseInt(req.params.userId, 10);
+  const userId = Number(req.params.userId);
+  if (!Number.isInteger(userId) || userId < 1) {
+    res.status(400).json({ error: "Invalid user ID" });
+    return;
+  }
 
   const [user] = await db
     .select({
@@ -169,7 +173,7 @@ router.get("/:userId/accounts", async (req, res) => {
     })
     .from(accountsTable)
     .leftJoin(usersTable, eq(accountsTable.userId, usersTable.id))
-    .where(and(eq(accountsTable.userId, userId), isNull(accountsTable.deletedAt)))
+    .where(eq(accountsTable.userId, userId))
     .orderBy(desc(accountsTable.createdAt))
     .limit(50);
 

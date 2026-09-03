@@ -21,6 +21,33 @@ function makeHeaders(extra?: Record<string, string>): Record<string, string> {
   };
 }
 
+const FREE_TO_PLAY_GAME_NAMES = new Set([
+  "apex legends",
+  "counter-strike 2",
+  "dota 2",
+  "fortnite",
+  "pubg: battlegrounds",
+  "team fortress 2",
+  "warframe",
+]);
+
+function filterOwnedGameNames(names: string[]): string[] {
+  const seen = new Set<string>();
+  return names.filter((name) => {
+    const normalized = name.trim().toLowerCase();
+    if (
+      !normalized ||
+      FREE_TO_PLAY_GAME_NAMES.has(normalized) ||
+      normalized.includes("playtest")
+    ) {
+      return false;
+    }
+    if (seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+}
+
 function encryptPassword(password: string, modHex: string, expHex: string): string {
   const padded = modHex.length % 2 === 1 ? "0" + modHex : modHex;
   const paddedExp = expHex.length % 2 === 1 ? "0" + expHex : expHex;
@@ -215,7 +242,7 @@ async function getOwnedGames(
         const data = await res.json() as Record<string, unknown>;
         const r = (data.response ?? {}) as Record<string, unknown>;
         const games = (r.games ?? []) as Array<Record<string, unknown>>;
-        const names = games.map((g) => String(g.name ?? "")).filter(Boolean);
+        const names = filterOwnedGameNames(games.map((g) => String(g.name ?? "")));
         logger.info({ count: names.length, proxyIndex }, "GetOwnedGames API success via proxy");
         return names;
       }
@@ -246,13 +273,13 @@ async function getOwnedGames(
             if (depth === 0) { end = i + 1; break; }
           }
           const gamesData = JSON.parse(html.slice(start, end)) as Array<Record<string, unknown>>;
-          const names = gamesData
+          const names = filterOwnedGameNames(gamesData
             .filter((g) => {
               const hours = Number(String(g.hours_forever ?? "0").replace(/,/g, ""));
               const lastPlayed = Number(g.last_played ?? 0);
               return hours > 0 || lastPlayed > 0;
             })
-            .map((g) => String(g.name ?? "")).filter(Boolean);
+            .map((g) => String(g.name ?? "")));
           logger.info({ count: names.length }, "GetOwnedGames HTML fallback success");
           return names;
         }

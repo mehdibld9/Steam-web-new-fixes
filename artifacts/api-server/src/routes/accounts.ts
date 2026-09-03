@@ -76,6 +76,9 @@ router.get("/", async (req, res) => {
     conditions.push(eq(accountsTable.pointsCost, 0));
     conditions.push(eq(accountsTable.vipOnly, false));
   }
+  if (sort === "vip") {
+    conditions.push(eq(accountsTable.vipOnly, true));
+  }
   // VIP-only listings are visible to all users; claiming is gated on the frontend.
   if (game) conditions.push(sql`${game} = ANY(${accountsTable.games})`);
   if (search) {
@@ -374,6 +377,9 @@ router.get("/:accountId", async (req, res) => {
     myVote,
     userHasCommented,
     myClaim,
+    posterPremiumTier: isPremiumActive2 ? account.posterPremiumTier : null,
+    posterNameColor: isPremiumActive2 ? account.posterNameColor : null,
+    posterBadgeType: isPremiumActive2 ? account.posterBadgeType : null,
     posterBadgeIconUrl: isPremiumActive2 ? account.posterBadgeIconUrl : null,
     posterBadgeIconLink: isPremiumActive2 ? account.posterBadgeIconLink : null,
   });

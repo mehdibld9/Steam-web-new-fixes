@@ -14,4 +14,5 @@ export const ListAccountsSort = {
   popular: 'popular',
   free: 'free',
   points: 'points',
+  vip: 'vip',
 } as const;

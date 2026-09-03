@@ -312,7 +312,7 @@ paths:
           in: query
           schema:
             type: string
-            enum: [recent, popular, free, points]
+            enum: [recent, popular, free, points, vip]
             default: recent
         - name: page
           in: query

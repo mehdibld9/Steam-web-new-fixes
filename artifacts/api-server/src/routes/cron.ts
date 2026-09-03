@@ -3,6 +3,7 @@ import express from "express";
 import { autoDrawExpiredGiveaways } from "../lib/giveawayScheduler";
 import { runHealthChecks } from "../lib/accountHealthChecker";
 import { logger } from "../lib/logger";
+import { deleteExpiredMessages } from "../lib/messageCleanup";
 
 const router = express.Router();
 
@@ -26,7 +27,8 @@ router.post("/cron/tick", async (req, res) => {
 
   try {
     await autoDrawExpiredGiveaways();
-    res.json({ ok: true, ran: ["giveaway"] });
+    const deletedMessages = await deleteExpiredMessages();
+    res.json({ ok: true, ran: ["giveaway", "message-cleanup"], deletedMessages });
   } catch (e) {
     logger.error({ err: e }, "Cron tick failed");
     res.status(500).json({ ok: false, error: String(e) });

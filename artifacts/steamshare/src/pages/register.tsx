@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Eye, EyeOff, Zap, X } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, Eye, EyeOff, Zap, X, ShieldCheck, Mail } from "lucide-react";
+import { useRef, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { getGetMeQueryKey } from "@workspace/api-client-react";
 
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters").max(30),
@@ -22,8 +24,15 @@ const formSchema = z.object({
 export default function Register() {
   const [, setLocation] = useLocation();
   const registerUser = useRegister();
+  const queryClient = useQueryClient();
   const [submitError, setSubmitError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [requiresVerification, setRequiresVerification] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationError, setVerificationError] = useState("");
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const verificationInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -33,12 +42,41 @@ export default function Register() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitError("");
     try {
-      await registerUser.mutateAsync({
+      const result = await registerUser.mutateAsync({
         data: { username: values.username, email: values.email, password: values.password },
       });
-      setLocation("/");
+      if ("requiresRegistrationTwoFactor" in result) {
+        setRequiresVerification(true);
+        setTimeout(() => verificationInputRef.current?.focus(), 100);
+      } else {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setSuccess(true);
+        setTimeout(() => setLocation("/"), 600);
+      }
     } catch (e: any) {
       setSubmitError(e.message || "Failed to create account. Username or email may already be taken.");
+    }
+  }
+
+  async function onVerifyRegistration() {
+    setVerificationError("");
+    setVerificationLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-registration", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: verificationCode.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Invalid verification code.");
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      setSuccess(true);
+      setTimeout(() => setLocation("/"), 600);
+    } catch (e: any) {
+      setVerificationError(e.message || "Incorrect verification code. Please try again.");
+    } finally {
+      setVerificationLoading(false);
     }
   }
 
@@ -70,7 +108,43 @@ export default function Register() {
             <span className="font-black text-xl text-foreground">Steam Family</span>
           </div>
 
-          <>
+          {success ? (
+            <div className="flex flex-col items-center gap-4 py-10 text-center">
+              <CheckCircle2 className="h-12 w-12 text-green-400" />
+              <p className="font-bold text-lg text-foreground">Account verified! Redirecting…</p>
+            </div>
+          ) : requiresVerification ? (
+            <div>
+              <div className="mb-8">
+                <ShieldCheck className="h-10 w-10 text-primary mb-4" />
+                <h2 className="text-3xl font-black text-foreground">Verify your email</h2>
+                <p className="text-muted-foreground mt-2 flex items-center gap-1.5">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  We sent a 6-digit code to your email. It expires in 10 minutes.
+                </p>
+              </div>
+              {verificationError && (
+                <div className="flex items-start gap-3 bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+                  <Zap className="h-4 w-4 mt-0.5 shrink-0" />{verificationError}
+                </div>
+              )}
+              <div className="space-y-4">
+                <Input
+                  ref={verificationInputRef}
+                  value={verificationCode}
+                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                  onKeyDown={(e) => { if (e.key === "Enter" && verificationCode.length === 6) onVerifyRegistration(); }}
+                  placeholder="000000"
+                  maxLength={6}
+                  className="h-14 text-center text-3xl font-mono tracking-widest bg-secondary/40 border-border rounded-xl"
+                />
+                <Button className="w-full h-12 font-bold rounded-xl text-base" onClick={onVerifyRegistration} disabled={verificationCode.length !== 6 || verificationLoading}>
+                  {verificationLoading ? "Verifying…" : "Verify & Create Account"}
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <>
               <div className="mb-8">
                 <h2 className="text-3xl font-black text-foreground">Create account</h2>
                 <p className="text-muted-foreground mt-2">Join the network and start trading today.</p>
@@ -193,6 +267,7 @@ export default function Register() {
                 </form>
               </Form>
             </>
+          )}
 
           <p className="mt-8 text-center text-sm text-muted-foreground">
             Already have an account?{" "}

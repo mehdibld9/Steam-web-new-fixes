@@ -11,7 +11,7 @@ import { Search, Filter, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-rea
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Megaphone, Pin } from "lucide-react";
 
-const LIMIT = 50;
+const LIMIT = 20;
 
 async function fetchAnnouncements() {
   const res = await fetch("/api/announcements", { credentials: "include" });
@@ -51,7 +51,7 @@ export default function Browse() {
   const params = getParams();
   const [search, setSearch] = useState(params.get("search") ?? "");
   const [selectedGame, setSelectedGame] = useState<string>(params.get("game") ?? "all");
-  const [sort, setSort] = useState<"recent" | "popular" | "free" | "points">(
+  const [sort, setSort] = useState<"recent" | "popular" | "free" | "points" | "vip">(
     (params.get("sort") as any) ?? "recent"
   );
   const [page, setPage] = useState(Math.max(1, Number(params.get("page") ?? "1")));
@@ -228,6 +228,7 @@ export default function Browse() {
                       <SelectItem value="popular">Most Popular</SelectItem>
                       <SelectItem value="free">Free Accounts</SelectItem>
                       <SelectItem value="points">Lowest Points</SelectItem>
+                      <SelectItem value="vip">VIP Only</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

@@ -251,7 +251,7 @@ export default function Premium() {
               <ul className="space-y-2">
                 <FeatureItem icon={<Award className="h-4 w-4 text-blue-400" />} text="8 badges to choose from + custom badge" />
                 <FeatureItem icon={<Sparkles className="h-4 w-4 text-purple-400" />} text={<span className="aurora-text">Animated name colors</span>} />
-                <FeatureItem icon={<Coins className="h-4 w-4 text-yellow-400" />} text="You get 1000 points [one time]" />
+                <FeatureItem icon={<Coins className="h-4 w-4 text-yellow-400" />} text="You get 1000 points" />
                 <FeatureItem icon={<ThumbsUp className="h-4 w-4 text-blue-400" />} text="Bypass like restrictions" />
                 <FeatureItem icon={<MessageSquare className="h-4 w-4 text-blue-400" />} text="Bypass reply restrictions" />
                 <FeatureItem icon={<Lock className="h-4 w-4 text-blue-400" />} text="Access VIP content" />

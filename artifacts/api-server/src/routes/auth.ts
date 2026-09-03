@@ -11,9 +11,26 @@ import {
   sendEmail,
   twoFactorEmailHtml,
   passwordChangeEmailHtml,
+  registrationCodeEmailHtml,
 } from "../lib/email";
 
 const router = express.Router();
+
+function normalizePremiumVisuals(user: any) {
+  const active =
+    user.premiumTier &&
+    user.premiumExpiresAt &&
+    new Date(user.premiumExpiresAt) > new Date();
+
+  return {
+    ...user,
+    premiumTier: active ? user.premiumTier : null,
+    nameColor: active ? user.nameColor : null,
+    badgeType: active ? user.badgeType : null,
+    badgeIconUrl: active ? user.badgeIconUrl : null,
+    badgeIconLink: active ? user.badgeIconLink : null,
+  };
+}
 
 function getClientIp(req: Parameters<typeof router.post>[1] extends (req: infer R, ...a: any[]) => any ? R : never): string {
   const forwarded = (req as any).headers["x-forwarded-for"];
@@ -75,21 +92,92 @@ router.post("/register", async (req, res) => {
       passwordHash,
       registrationIp: ip,
       points: startingPoints,
-      emailVerified: true,
+      emailVerified: false,
     })
     .returning();
 
+  const verificationCode = createVerificationCode();
+  const codeHash = await bcrypt.hash(verificationCode, 10);
+  await db.update(usersTable)
+    .set({
+     twoFactorCode: codeHash,
+     twoFactorCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+    })
+    .where(eq(usersTable.id, user.id));
+
+  try {
+    const verifyUrl = `${req.protocol}://${req.get("host")}/register`;
+    await sendEmail(user.email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, user.username, verifyUrl));
+  } catch (emailErr: any) {
+    await db.delete(usersTable).where(eq(usersTable.id, user.id));
+    const message = emailErr?.message ?? "";
+    res.status(500).json({
+     error: message.includes("SMTP is not configured")
+       ? "Email delivery is not configured. Contact an administrator."
+       : "We couldn't send the verification code. Please try again.",
+    });
+    return;
+  }
+
   req.session.regenerate((err: any) => {
     if (err) { res.status(500).json({ error: "Session error" }); return; }
-    req.session.userId = user.id;
-    req.session.isAdmin = user.isAdmin;
-    req.session.isModerator = user.isModerator;
-    req.session._banCheckedAt = Date.now();
+    (req.session as any).pendingRegistrationUserId = user.id;
     req.session.save((saveErr: any) => {
-      if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
-      const { passwordHash: _, ...safeUser } = user;
-      res.status(201).json(safeUser);
+     if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
+     res.status(201).json({
+       requiresRegistrationTwoFactor: true,
+       requiresEmailVerification: true,
+       email: user.email,
+     });
     });
+  });
+});
+
+// POST /auth/verify-registration — activate a new account with its email code
+router.post("/verify-registration", async (req, res) => {
+  const { code } = req.body as { code?: string };
+  const pendingUserId = (req.session as any).pendingRegistrationUserId;
+
+  if (!pendingUserId) {
+    res.status(400).json({ error: "No pending registration. Please register again." });
+    return;
+  }
+  if (!code || typeof code !== "string" || !/^\d{6}$/.test(code.trim())) {
+    res.status(400).json({ error: "Enter the 6-digit verification code." });
+    return;
+  }
+
+  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1);
+  if (!user || user.emailVerified) {
+    res.status(400).json({ error: "This registration is no longer pending." });
+    return;
+  }
+  const codeMatches = user.twoFactorCode
+    ? await bcrypt.compare(code.trim(), user.twoFactorCode).catch(() => false)
+    : false;
+  if (!codeMatches) {
+    res.status(401).json({ error: "Incorrect verification code." });
+    return;
+  }
+  if (!user.twoFactorCodeExpiresAt || new Date() > new Date(user.twoFactorCodeExpiresAt)) {
+    res.status(401).json({ error: "Verification code expired. Please register again." });
+    return;
+  }
+
+  const [activated] = await db.update(usersTable)
+    .set({ emailVerified: true, twoFactorCode: null, twoFactorCodeExpiresAt: null })
+    .where(eq(usersTable.id, user.id))
+    .returning();
+
+  delete (req.session as any).pendingRegistrationUserId;
+  req.session.userId = activated.id;
+  req.session.isAdmin = activated.isAdmin;
+  req.session.isModerator = activated.isModerator;
+  req.session._banCheckedAt = Date.now();
+  req.session.save((saveErr: any) => {
+    if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
+    const { passwordHash: _, ...safeUser } = activated;
+    res.status(200).json(normalizePremiumVisuals(safeUser));
   });
 });
 
@@ -159,7 +247,7 @@ router.post("/login", async (req, res) => {
           req.session._banCheckedAt = Date.now();
           req.session.save((saveErr) => {
             if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
-            res.status(200).json(safeUserFallback);
+            res.status(200).json(normalizePremiumVisuals(safeUserFallback));
           });
         });
         return;
@@ -191,7 +279,7 @@ router.post("/login", async (req, res) => {
     req.session._banCheckedAt = Date.now();
     req.session.save((saveErr) => {
       if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
-      res.status(200).json(safeUser);
+      res.status(200).json(normalizePremiumVisuals(safeUser));
     });
   });
 });
@@ -244,7 +332,7 @@ router.post("/verify-2fa", async (req, res) => {
     req.session._banCheckedAt = Date.now();
     req.session.save((saveErr) => {
       if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
-      res.status(200).json(safeUser);
+      res.status(200).json(normalizePremiumVisuals(safeUser));
     });
   });
 });
@@ -310,7 +398,7 @@ router.get("/me", requireAuth, async (req, res) => {
     ...safeUser
   } = user;
   res.set("Cache-Control", "private, no-store");
-  res.json(safeUser);
+  res.json(normalizePremiumVisuals(safeUser));
 });
 
 // Update avatar URL and/or display name
@@ -375,7 +463,7 @@ router.put("/profile", requireAuth, async (req, res) => {
     .where(eq(usersTable.id, req.session.userId!))
     .returning();
   const { passwordHash: _, ...safeUser } = updated;
-  res.json(safeUser);
+  res.json(normalizePremiumVisuals(safeUser));
 });
 
 // Request a password-change code after validating the current password.

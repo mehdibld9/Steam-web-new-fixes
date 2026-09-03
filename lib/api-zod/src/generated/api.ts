@@ -229,7 +229,7 @@ export const listAccountsQueryLimitDefault = 20;
 
 export const ListAccountsQueryParams = zod.object({
   "game": zod.coerce.string().optional(),
-  "sort": zod.enum(['recent', 'popular', 'free', 'points']).default(listAccountsQuerySortDefault),
+  "sort": zod.enum(['recent', 'popular', 'free', 'points', 'vip']).default(listAccountsQuerySortDefault),
   "page": zod.coerce.number().default(listAccountsQueryPageDefault),
   "limit": zod.coerce.number().default(listAccountsQueryLimitDefault)
 })
@@ -907,5 +907,4 @@ export const ListBadgesResponseItem = zod.object({
   "iconUrl": zod.string().nullish()
 })
 export const ListBadgesResponse = zod.array(ListBadgesResponseItem)
-
 

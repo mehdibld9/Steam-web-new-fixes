@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
 
-const { Pool } = pg;
+const { Client, Pool } = pg;
 
 const databaseUrl = process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL;
 
@@ -23,10 +23,17 @@ const isSupabaseDatabase = (() => {
 
 export const pool = new Pool({
   connectionString: databaseUrl,
-  // Tuned for serverless (Vercel): keep a small pool so each function instance
-  // doesn't open many idle connections — Postgres has a hard connection cap.
-  max: process.env.VERCEL ? 1 : 2,
-  idleTimeoutMillis: process.env.VERCEL ? 5_000 : 10_000,
+  max: 1,
+  idleTimeoutMillis: 10_000,
+  connectionTimeoutMillis: 8_000,
+  keepAlive: true,
+  ...(isSupabaseDatabase
+    ? { ssl: { rejectUnauthorized: false } }
+    : {}),
+});
+
+export const client = new Client({
+  connectionString: databaseUrl,
   connectionTimeoutMillis: 8_000,
   keepAlive: true,
   // Supabase requires TLS for hosted Postgres connections. The hosted
@@ -35,6 +42,10 @@ export const pool = new Pool({
     ? { ssl: { rejectUnauthorized: false } }
     : {}),
 });
-export const db = drizzle(pool, { schema });
+
+// Use one direct connection instead of maintaining a connection pool.
+await client.connect();
+
+export const db = drizzle(client, { schema });
 
 export * from "./schema";

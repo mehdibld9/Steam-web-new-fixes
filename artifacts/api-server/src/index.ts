@@ -3,6 +3,7 @@ import app from "./app";
 import { logger } from "./lib/logger";
 import { startHealthCheckScheduler } from "./lib/accountHealthChecker";
 import { startGiveawayScheduler } from "./lib/giveawayScheduler";
+import { startMessageCleanupScheduler } from "./lib/messageCleanup";
 import { getOrCreateAdminBot } from "./lib/adminBot";
 
 const rawPort = process.env["PORT"];
@@ -32,6 +33,7 @@ app.listen(port, (err) => {
   if (!process.env["VERCEL"]) {
     startHealthCheckScheduler();
     startGiveawayScheduler();
+    startMessageCleanupScheduler();
   }
   getOrCreateAdminBot().catch((e) => logger.error({ err: e }, "Failed to init Admin Bot"));
 });

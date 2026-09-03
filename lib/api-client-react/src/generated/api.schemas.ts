@@ -378,6 +378,7 @@ export const ListAccountsSort = {
   popular: 'popular',
   free: 'free',
   points: 'points',
+  vip: 'vip',
 } as const;
 
 export type GetLeaderboardParams = {
@@ -387,4 +388,3 @@ limit?: number;
 export type ListUsersParams = {
 page?: number;
 };
-

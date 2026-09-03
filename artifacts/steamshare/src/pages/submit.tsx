@@ -108,6 +108,9 @@ export default function Submit() {
     }
     setVerifyStatus("checking");
     setVerifyMessage("");
+    // A new credential check must not retain games discovered for a previous account.
+    form.setValue("gamesList", "", { shouldValidate: true });
+    setIsFamilyShare(false);
     try {
       const result = await verifyCredentials.mutateAsync({
         data: { steamUsername: values.steamUsername, steamPassword: values.steamPassword },

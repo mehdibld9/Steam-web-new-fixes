@@ -271,6 +271,7 @@ router.post("/redeem", requireAuth, async (req, res) => {
 
   // Redeem codes always start fresh from now — never stack on existing subscription.
   const expiresAt = new Date(Date.now() + duration);
+  const pointsReward = premCode.days === 365 ? 1000 : 0;
 
   // Atomically increment usesCount only if still below maxUses — prevents race
   // conditions where two concurrent requests both pass the check above.
@@ -287,9 +288,18 @@ router.post("/redeem", requireAuth, async (req, res) => {
     return;
   }
 
-  await db.update(usersTable).set({ premiumTier: newTier, premiumExpiresAt: expiresAt }).where(eq(usersTable.id, userId));
+  await db.update(usersTable).set({
+    premiumTier: newTier,
+    premiumExpiresAt: expiresAt,
+    ...(pointsReward > 0 ? { points: sql`${usersTable.points} + ${pointsReward}` } : {}),
+  }).where(eq(usersTable.id, userId));
 
-  res.json({ message: `${newTier === "pro" ? "Pro" : "Premium"} activated for ${premCode.days} days!`, tier: newTier, expiresAt });
+  res.json({
+    message: `${newTier === "pro" ? "Pro" : "Premium"} activated for ${premCode.days} days!${pointsReward > 0 ? ` ${pointsReward} points added!` : ""}`,
+    tier: newTier,
+    expiresAt,
+    pointsReward,
+  });
 });
 
 export default router;

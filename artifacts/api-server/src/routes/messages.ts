@@ -51,7 +51,24 @@ router.get("/conversations", requireAuth, async (req, res) => {
     ORDER BY lp.created_at DESC
   `);
 
-  res.json(rows.rows);
+  const now = new Date();
+  res.json(
+    rows.rows.map((row: any) => {
+      const premiumActive =
+        row.partner_premium_tier &&
+        row.partner_premium_expires_at &&
+        new Date(row.partner_premium_expires_at) > now;
+
+      return {
+        ...row,
+        partner_premium_tier: premiumActive ? row.partner_premium_tier : null,
+        partner_name_color: premiumActive ? row.partner_name_color : null,
+        partner_badge_type: premiumActive ? row.partner_badge_type : null,
+        partner_badge_icon_url: premiumActive ? row.partner_badge_icon_url : null,
+        partner_badge_icon_link: premiumActive ? row.partner_badge_icon_link : null,
+      };
+    }),
+  );
 });
 
 // Unread count — must be defined BEFORE /:userId to avoid route shadowing

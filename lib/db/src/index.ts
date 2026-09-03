@@ -21,10 +21,24 @@ const isSupabaseDatabase = (() => {
   }
 })();
 
+const connectionString = (() => {
+  try {
+    const url = new URL(databaseUrl);
+    // Transaction pooling is designed for serverless bursts and avoids the
+    // Supabase session-pooler client cap.
+    if (url.hostname.endsWith(".pooler.supabase.com")) {
+      url.port = "6543";
+    }
+    return url.toString();
+  } catch {
+    return databaseUrl;
+  }
+})();
+
 // Vercel and the session store require a Pool; keep it to one connection to
 // avoid opening multiple database connections per serverless instance.
 export const pool = new Pool({
-  connectionString: databaseUrl,
+  connectionString,
   max: 1,
   idleTimeoutMillis: 10_000,
   connectionTimeoutMillis: 8_000,

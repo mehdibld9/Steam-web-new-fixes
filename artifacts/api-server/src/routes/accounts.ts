@@ -52,8 +52,12 @@ router.get("/games", async (_req, res) => {
 });
 
 router.get("/", async (req, res) => {
-  const page = parseInt(String(req.query.page ?? "1"), 10);
-  const limit = Math.min(parseInt(String(req.query.limit ?? "50"), 10), 100);
+  const requestedPage = Number(req.query.page ?? 1);
+  const requestedLimit = Number(req.query.limit ?? 50);
+  const page = Number.isFinite(requestedPage) && requestedPage >= 1 ? Math.floor(requestedPage) : 1;
+  const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1
+    ? Math.min(Math.floor(requestedLimit), 100)
+    : 50;
   const offset = (page - 1) * limit;
   const game = req.query.game as string | undefined;
   const search = String(req.query.search ?? "").trim();

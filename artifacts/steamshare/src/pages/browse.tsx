@@ -23,6 +23,11 @@ function getParams() {
   return new URLSearchParams(window.location.search);
 }
 
+function getPage(params: URLSearchParams): number {
+  const value = Number(params.get("page") ?? "1");
+  return Number.isFinite(value) && value >= 1 ? Math.floor(value) : 1;
+}
+
 /** Build the page-number list with ellipsis gaps. */
 function buildPageList(current: number, total: number): (number | "…")[] {
   if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
@@ -54,7 +59,7 @@ export default function Browse() {
   const [sort, setSort] = useState<"recent" | "popular" | "free" | "points" | "vip">(
     (params.get("sort") as any) ?? "recent"
   );
-  const [page, setPage] = useState(Math.max(1, Number(params.get("page") ?? "1")));
+  const [page, setPage] = useState(getPage(params));
   // Skip the first render so filter effects don't wipe the page from the URL on back-navigation.
   const mounted = useRef(false);
 
@@ -141,7 +146,7 @@ export default function Browse() {
       setSearch(p.get("search") ?? "");
       setSelectedGame(p.get("game") ?? "all");
       setSort((p.get("sort") as any) ?? "recent");
-      setPage(Math.max(1, Number(p.get("page") ?? "1")));
+      setPage(getPage(p));
     }
     window.addEventListener("popstate", onPop);
     return () => window.removeEventListener("popstate", onPop);

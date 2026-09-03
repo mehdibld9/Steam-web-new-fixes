@@ -2,7 +2,7 @@ import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
 
-const { Client, Pool } = pg;
+const { Pool } = pg;
 
 const databaseUrl = process.env.SUPABASE_DATABASE_URL ?? process.env.DATABASE_URL;
 
@@ -21,6 +21,8 @@ const isSupabaseDatabase = (() => {
   }
 })();
 
+// Vercel and the session store require a Pool; keep it to one connection to
+// avoid opening multiple database connections per serverless instance.
 export const pool = new Pool({
   connectionString: databaseUrl,
   max: 1,
@@ -32,20 +34,6 @@ export const pool = new Pool({
     : {}),
 });
 
-export const client = new Client({
-  connectionString: databaseUrl,
-  connectionTimeoutMillis: 8_000,
-  keepAlive: true,
-  // Supabase requires TLS for hosted Postgres connections. The hosted
-  // certificate chain is managed by Supabase, not by this serverless bundle.
-  ...(isSupabaseDatabase
-    ? { ssl: { rejectUnauthorized: false } }
-    : {}),
-});
-
-// Use one direct connection instead of maintaining a connection pool.
-await client.connect();
-
-export const db = drizzle(client, { schema });
+export const db = drizzle(pool, { schema });
 
 export * from "./schema";

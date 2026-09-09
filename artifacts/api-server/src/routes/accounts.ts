@@ -487,6 +487,18 @@ router.post("/:accountId/claim", requireAuth, async (req, res) => {
     res.status(400).json({ error: "Account not available" });
     return;
   }
+
+  // Owners can access credentials for their own active listings without
+  // spending points or satisfying the public unlock requirements.
+  if (account.userId === userId) {
+    res.json({
+      steamUsername: account.steamUsername,
+      steamPassword: account.steamPassword,
+      pointsSpent: 0,
+    });
+    return;
+  }
+
   if (user.points < account.pointsCost) {
     res.status(400).json({ error: "Not enough points" });
     return;

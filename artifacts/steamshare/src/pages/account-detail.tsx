@@ -395,7 +395,8 @@ export default function AccountDetail() {
       return;
     }
     if (!account) return;
-    if (user.points < account.pointsCost) {
+    const isOwner = user.id === account.userId;
+    if (!isOwner && user.points < account.pointsCost) {
       setClaimError(
         `You need ${account.pointsCost} points but only have ${user.points}.`,
       );
@@ -743,7 +744,9 @@ export default function AccountDetail() {
                         View account credentials
                       </p>
                       <p className="text-xs sm:text-sm text-muted-foreground">
-                        {account.pointsCost === 0
+                        {user?.id === account.userId
+                          ? "View the credentials for your own listing."
+                          : account.pointsCost === 0
                           ? "Claim this account for free to reveal the Steam login."
                           : `Spend ${account.pointsCost} points to reveal the Steam login.`}
                       </p>
@@ -810,8 +813,10 @@ export default function AccountDetail() {
                               disabled={claimAccount.isPending}
                             >
                               {claimAccount.isPending
-                                ? "Claiming..."
-                                : account.pointsCost === 0
+                                ? "Loading..."
+                                : user?.id === account.userId
+                                  ? "View Your Credentials"
+                                  : account.pointsCost === 0
                                   ? "Claim for Free"
                                   : `Claim for ${account.pointsCost} pts`}
                             </Button>

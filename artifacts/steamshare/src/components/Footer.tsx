@@ -36,30 +36,30 @@ export default function Footer(): JSX.Element {
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
         <div className="grid grid-cols-2 gap-4 sm:gap-5 md:grid-cols-4 lg:gap-8">
           <div>
-            <h3 className="mb-3 text-lg font-extrabold tracking-tight text-white sm:text-xl">
+            <h3 className="mb-3 text-lg font-extrabold tracking-tight text-foreground sm:text-xl">
               Steam Family
             </h3>
-            <ul className="space-y-2 text-[11px] text-slate-300 sm:text-xs">
+            <ul className="space-y-2 text-[11px] text-muted-foreground sm:text-xs">
               <li>
-                <a href="/browse" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/browse" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Search className={`${iconClasses} text-cyan-400`} />
                   Explore Accounts
                 </a>
               </li>
               <li>
-                <a href="/terms" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/terms" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <FileText className={`${iconClasses} text-sky-400`} />
                   Terms &amp; Rules
                 </a>
               </li>
               <li>
-                <a href="https://linktr.ee/mehdibld" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="https://linktr.ee/mehdibld" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Megaphone className={`${iconClasses} text-rose-400`} />
                   Advertise
                 </a>
               </li>
               <li>
-                <a href="mailto:contact@steamfamily.xyz" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="mailto:contact@steamfamily.xyz" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Mail className={`${iconClasses} text-emerald-400`} />
                   Contact Us
                 </a>
@@ -68,8 +68,8 @@ export default function Footer(): JSX.Element {
           </div>
 
           <div>
-            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-300 sm:text-[11px]">Features</h4>
-            <ul className="space-y-2 text-[11px] text-slate-300 sm:text-xs">
+            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:text-[11px]">Features</h4>
+            <ul className="space-y-2 text-[11px] text-muted-foreground sm:text-xs">
               <li>
                 <a href="/premium" className="inline-flex items-center gap-2 text-yellow-300 hover:text-yellow-200 transition-colors">
                   <Crown className={`${iconClasses}`} />
@@ -77,19 +77,19 @@ export default function Footer(): JSX.Element {
                 </a>
               </li>
               <li>
-                <a href="/browse" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/browse" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <ShoppingBag className={`${iconClasses} text-violet-400`} />
                   Shared Libraries
                 </a>
               </li>
               <li>
-                <a href="/submit" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/submit" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <PlusCircle className={`${iconClasses} text-blue-400`} />
                   Submit Account
                 </a>
               </li>
               <li>
-                <a href="/store" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/store" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <ShoppingBag className={`${iconClasses} text-emerald-400`} />
                   Digital Store
                 </a>
@@ -98,28 +98,28 @@ export default function Footer(): JSX.Element {
           </div>
 
           <div>
-            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-300 sm:text-[11px]">Help &amp; Support</h4>
-            <ul className="space-y-2 text-[11px] text-slate-300 sm:text-xs">
+            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:text-[11px]">Help &amp; Support</h4>
+            <ul className="space-y-2 text-[11px] text-muted-foreground sm:text-xs">
               <li>
-                <a href="/faq" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/faq" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <HelpCircle className={`${iconClasses} text-cyan-400`} />
                   FAQ
                 </a>
               </li>
               <li>
-                <a href="/faq" className="inline-flex items-center gap-2 hover:text-white transition-colors">
-                  <ChevronRight className={`${iconClasses} text-slate-400`} />
+                <a href="/faq" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
+                  <ChevronRight className={`${iconClasses} text-muted-foreground`} />
                   Launcher Bypasses
                 </a>
               </li>
               <li>
-                <a href="/faq" className="inline-flex items-center gap-2 hover:text-white transition-colors">
-                  <ChevronRight className={`${iconClasses} text-slate-400`} />
+                <a href="/faq" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
+                  <ChevronRight className={`${iconClasses} text-muted-foreground`} />
                   Steam Error Codes
                 </a>
               </li>
               <li>
-                <a href="mailto:contact@steamfamily.xyz" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="mailto:contact@steamfamily.xyz" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Mail className={`${iconClasses} text-emerald-400`} />
                   contact@steamfamily.xyz
                 </a>
@@ -128,28 +128,28 @@ export default function Footer(): JSX.Element {
           </div>
 
           <div>
-            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-slate-300 sm:text-[11px]">Community</h4>
-            <ul className="space-y-2 text-[11px] text-slate-300 sm:text-xs">
+            <h4 className="mb-3 text-[10px] font-bold uppercase tracking-[0.15em] text-muted-foreground sm:text-[11px]">Community</h4>
+            <ul className="space-y-2 text-[11px] text-muted-foreground sm:text-xs">
               <li>
-                <a href="https://t.me/Steam_Family" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="https://t.me/Steam_Family" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Send className={`${iconClasses} text-sky-400`} />
                   Telegram
                 </a>
               </li>
               <li>
-                <a href="https://discord.gg/3w69MWQcuX" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="https://discord.gg/3w69MWQcuX" target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <DiscordIcon className={`${iconClasses} text-violet-400`} />
                   Discord
                 </a>
               </li>
               <li>
-                <a href="/giveaways" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/giveaways" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Gift className={`${iconClasses} text-emerald-400`} />
                   Giveaways
                 </a>
               </li>
               <li>
-                <a href="/leaderboard" className="inline-flex items-center gap-2 hover:text-white transition-colors">
+                <a href="/leaderboard" className="inline-flex items-center gap-2 hover:text-foreground transition-colors">
                   <Trophy className={`${iconClasses} text-yellow-400`} />
                   Leaderboard
                 </a>
@@ -161,18 +161,18 @@ export default function Footer(): JSX.Element {
         <div className="mt-10 border-t border-border pt-7">
           <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
-              <span className="text-sm font-bold uppercase tracking-[0.2em] text-slate-300">Follow Us</span>
+              <span className="text-sm font-bold uppercase tracking-[0.2em] text-muted-foreground">Follow Us</span>
               <div className="flex items-center gap-3">
-                <a href="https://t.me/Steam_Family" aria-label="Telegram" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-700 bg-slate-900/40 text-sky-400 transition hover:border-sky-400 hover:text-sky-300">
+                <a href="https://t.me/Steam_Family" aria-label="Telegram" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/40 text-sky-500 transition hover:border-sky-400 hover:text-sky-400">
                   <Send className="h-4 w-4" />
                 </a>
-                <a href="https://discord.gg/3w69MWQcuX" aria-label="Discord" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-700 bg-slate-900/40 text-violet-400 transition hover:border-violet-400 hover:text-violet-300">
+                <a href="https://discord.gg/3w69MWQcuX" aria-label="Discord" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/40 text-violet-500 transition hover:border-violet-400 hover:text-violet-400">
                   <DiscordIcon className="h-4 w-4" />
                 </a>
-                <a href="mailto:contact@steamfamily.xyz" aria-label="Email" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-700 bg-slate-900/40 text-emerald-400 transition hover:border-emerald-400 hover:text-emerald-300">
+                <a href="mailto:contact@steamfamily.xyz" aria-label="Email" className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/40 text-emerald-500 transition hover:border-emerald-400 hover:text-emerald-400">
                   <Mail className="h-4 w-4" />
                 </a>
-                <a href="https://linktr.ee/mehdibld" aria-label="Advertise" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-slate-700 bg-slate-900/40 text-rose-400 transition hover:border-rose-400 hover:text-rose-300">
+                <a href="https://linktr.ee/mehdibld" aria-label="Advertise" target="_blank" rel="noopener noreferrer" className="flex h-10 w-10 items-center justify-center rounded-md border border-border bg-muted/40 text-rose-500 transition hover:border-rose-400 hover:text-rose-400">
                   <Megaphone className="h-4 w-4" />
                 </a>
                 <a href="/premium" aria-label="Buy Pro" className="flex h-10 w-10 items-center justify-center rounded-md border border-yellow-500/70 bg-yellow-500/10 text-yellow-300 transition hover:bg-yellow-400 hover:text-black">
@@ -181,17 +181,17 @@ export default function Footer(): JSX.Element {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-300">
-              <a href="/terms" className="hover:text-white transition-colors">Terms &amp; Rules</a>
-              <a href="/faq" className="hover:text-white transition-colors">FAQ</a>
-              <a href="/premium" className="hover:text-white transition-colors">Buy Pro</a>
-              <a href="mailto:contact@steamfamily.xyz" className="hover:text-white transition-colors">contact@steamfamily.xyz</a>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground">
+              <a href="/terms" className="hover:text-foreground transition-colors">Terms &amp; Rules</a>
+              <a href="/faq" className="hover:text-foreground transition-colors">FAQ</a>
+              <a href="/premium" className="hover:text-foreground transition-colors">Buy Pro</a>
+              <a href="mailto:contact@steamfamily.xyz" className="hover:text-foreground transition-colors">contact@steamfamily.xyz</a>
             </div>
           </div>
         </div>
 
         <div className="mt-8 border-t border-border pt-6">
-          <p className="text-center text-sm text-slate-400">© {year} Steam Family. All rights reserved.</p>
+          <p className="text-center text-sm text-muted-foreground">© {year} Steam Family. All rights reserved.</p>
         </div>
       </div>
     </footer>

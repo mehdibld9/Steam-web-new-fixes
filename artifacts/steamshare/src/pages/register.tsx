@@ -159,7 +159,6 @@ export default function Register() {
             <>
               <div className="mb-8">
                 <h2 className="text-3xl font-black text-foreground">Create account</h2>
-                <p className="text-muted-foreground mt-2">Join the network and start trading today.</p>
               </div>
 
               <Form {...form}>
@@ -225,9 +224,11 @@ export default function Register() {
                         {registerUser.isPending || verificationLoading ? "Sending…" : "Get Code"}
                       </Button>
                     </div>
-                    <p className="text-xs text-muted-foreground">
-                      {requiresVerification ? "Enter the code sent to your email. It expires in 10 minutes." : "Get a code to finish creating your account."}
-                    </p>
+                    {requiresVerification && (
+                      <p className="text-xs text-muted-foreground">
+                        Enter the code sent to your email. It expires in 10 minutes.
+                      </p>
+                    )}
                     {verificationError && <p className="text-xs text-red-400">{verificationError}</p>}
                   </div>
 

@@ -55,6 +55,7 @@ export default function Login() {
       if (!res.ok) {
         if (data.requiresEmailVerification) {
           setVerificationEmail(data.email ?? "");
+          setCode("");
           setRequiresVerification(true);
           return;
         }
@@ -74,6 +75,42 @@ export default function Login() {
       setSubmitError(e.message || "Invalid username or password. Please try again.");
     } finally {
       setIsPending(false);
+    }
+  }
+
+  async function onVerifyRegistration() {
+    setCodeError("");
+    setCodeLoading(true);
+    try {
+      const res = await fetch("/api/auth/verify-registration", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: code.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Invalid verification code.");
+      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+      setSuccess(true);
+      setTimeout(() => setLocation("/"), 600);
+    } catch (e: any) {
+      setCodeError(e.message || "Incorrect code. Please try again.");
+    } finally {
+      setCodeLoading(false);
+    }
+  }
+
+  async function resendRegistrationCode() {
+    setCodeError("");
+    try {
+      const res = await fetch("/api/auth/resend-registration-code", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not send the code.");
+    } catch (e: any) {
+      setCodeError(e.message || "Could not send the verification code.");
     }
   }
 
@@ -136,6 +173,52 @@ export default function Login() {
               <div>
                 <p className="font-bold text-lg text-foreground">You're in!</p>
                 <p className="text-sm text-muted-foreground mt-1">Redirecting to the marketplace…</p>
+              </div>
+            </div>
+          ) : requiresVerification ? (
+            <div>
+              <div className="mb-8">
+                <ShieldCheck className="h-10 w-10 text-primary mb-4" />
+                <h2 className="text-3xl font-black text-foreground">Verify your email</h2>
+                <p className="text-muted-foreground mt-2 flex items-center gap-1.5">
+                  <Mail className="h-4 w-4 shrink-0" />
+                  We sent a 6-digit code to {verificationEmail}. It expires in 10 minutes.
+                </p>
+              </div>
+              {codeError && (
+                <div className="flex items-start gap-3 bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
+                  <Zap className="h-4 w-4 mt-0.5 shrink-0" />{codeError}
+                </div>
+              )}
+              <div className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    ref={codeInputRef}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                    onKeyDown={(e) => { if (e.key === "Enter" && code.length === 6) onVerifyRegistration(); }}
+                    placeholder="123456"
+                    maxLength={6}
+                    className="h-14 flex-1 text-center text-2xl font-mono tracking-widest bg-secondary/40 border-border focus:border-primary/60 rounded-xl"
+                  />
+                  <Button type="button" variant="outline" className="h-14 rounded-xl px-4" onClick={resendRegistrationCode}>
+                    Get Code
+                  </Button>
+                </div>
+                <Button
+                  className="w-full h-12 font-bold rounded-xl text-base"
+                  onClick={onVerifyRegistration}
+                  disabled={code.length !== 6 || codeLoading}
+                >
+                  {codeLoading ? "Verifying…" : "Verify & Sign in"}
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => { setRequiresVerification(false); setCode(""); setCodeError(""); }}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  ← Go back
+                </button>
               </div>
             </div>
           ) : requires2fa ? (

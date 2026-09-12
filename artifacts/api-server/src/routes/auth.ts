@@ -81,35 +81,13 @@ router.post("/register", async (req, res) => {
     return;
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
-  const startingPoints = await getSetting("points_registration");
-
-  const [user] = await db
-    .insert(usersTable)
-    .values({
-      username,
-      email,
-      passwordHash,
-      registrationIp: ip,
-      points: startingPoints,
-      emailVerified: false,
-    })
-    .returning();
-
   const verificationCode = createVerificationCode();
   const codeHash = await bcrypt.hash(verificationCode, 10);
-  await db.update(usersTable)
-    .set({
-     twoFactorCode: codeHash,
-     twoFactorCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
-    })
-    .where(eq(usersTable.id, user.id));
+  const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    const verifyUrl = `${req.protocol}://${req.get("host")}/register`;
-    await sendEmail(user.email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, user.username, verifyUrl));
+    await sendEmail(email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, username));
   } catch (emailErr: any) {
-    await db.delete(usersTable).where(eq(usersTable.id, user.id));
     const message = emailErr?.message ?? "";
     res.status(500).json({
      error: message.includes("SMTP is not configured")
@@ -121,13 +99,20 @@ router.post("/register", async (req, res) => {
 
   req.session.regenerate((err: any) => {
     if (err) { res.status(500).json({ error: "Session error" }); return; }
-    (req.session as any).pendingRegistrationUserId = user.id;
+    (req.session as any).pendingRegistration = {
+      username,
+      email,
+      passwordHash,
+      registrationIp: ip,
+      codeHash,
+      codeExpiresAt: Date.now() + 10 * 60 * 1000,
+    };
     req.session.save((saveErr: any) => {
      if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
      res.status(201).json({
        requiresRegistrationTwoFactor: true,
        requiresEmailVerification: true,
-       email: user.email,
+       email,
      });
     });
   });
@@ -136,9 +121,10 @@ router.post("/register", async (req, res) => {
 // POST /auth/verify-registration — activate a new account with its email code
 router.post("/verify-registration", async (req, res) => {
   const { code } = req.body as { code?: string };
+  const pendingRegistration = (req.session as any).pendingRegistration;
   const pendingUserId = (req.session as any).pendingRegistrationUserId;
 
-  if (!pendingUserId) {
+  if (!pendingRegistration && !pendingUserId) {
     res.status(400).json({ error: "No pending registration. Please register again." });
     return;
   }
@@ -147,28 +133,46 @@ router.post("/verify-registration", async (req, res) => {
     return;
   }
 
-  const [user] = await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1);
-  if (!user || user.emailVerified) {
+  const [user] = pendingUserId
+    ? await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1)
+    : [];
+  const codeHash = pendingRegistration?.codeHash ?? user?.twoFactorCode;
+  const codeExpiresAt = pendingRegistration?.codeExpiresAt ?? user?.twoFactorCodeExpiresAt;
+  if (pendingRegistration && (!pendingRegistration.username || !pendingRegistration.email)) {
     res.status(400).json({ error: "This registration is no longer pending." });
     return;
   }
-  const codeMatches = user.twoFactorCode
-    ? await bcrypt.compare(code.trim(), user.twoFactorCode).catch(() => false)
+  if (pendingUserId && (!user || user.emailVerified)) {
+    res.status(400).json({ error: "This registration is no longer pending." });
+    return;
+  }
+  const codeMatches = codeHash
+    ? await bcrypt.compare(code.trim(), codeHash).catch(() => false)
     : false;
   if (!codeMatches) {
     res.status(401).json({ error: "Incorrect verification code." });
     return;
   }
-  if (!user.twoFactorCodeExpiresAt || new Date() > new Date(user.twoFactorCodeExpiresAt)) {
+  if (!codeExpiresAt || new Date() > new Date(codeExpiresAt)) {
     res.status(401).json({ error: "Verification code expired. Please register again." });
     return;
   }
 
-  const [activated] = await db.update(usersTable)
-    .set({ emailVerified: true, twoFactorCode: null, twoFactorCodeExpiresAt: null })
-    .where(eq(usersTable.id, user.id))
-    .returning();
+  const activated = pendingRegistration
+    ? (await db.insert(usersTable).values({
+        username: pendingRegistration.username,
+        email: pendingRegistration.email,
+        passwordHash: pendingRegistration.passwordHash,
+        registrationIp: pendingRegistration.registrationIp,
+        points: await getSetting("points_registration"),
+        emailVerified: true,
+      }).returning())[0]
+    : (await db.update(usersTable)
+        .set({ emailVerified: true, twoFactorCode: null, twoFactorCodeExpiresAt: null })
+        .where(eq(usersTable.id, user.id))
+        .returning())[0];
 
+  delete (req.session as any).pendingRegistration;
   delete (req.session as any).pendingRegistrationUserId;
   req.session.userId = activated.id;
   req.session.isAdmin = activated.isAdmin;
@@ -179,6 +183,51 @@ router.post("/verify-registration", async (req, res) => {
     const { passwordHash: _, ...safeUser } = activated;
     res.status(200).json(normalizePremiumVisuals(safeUser));
   });
+});
+
+router.post("/resend-registration-code", async (req, res) => {
+  const pendingRegistration = (req.session as any).pendingRegistration;
+  const pendingUserId = (req.session as any).pendingRegistrationUserId;
+  if (!pendingRegistration && !pendingUserId) {
+    res.status(400).json({ error: "No pending registration. Please register again." });
+    return;
+  }
+
+  const [user] = pendingUserId
+    ? await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1)
+    : [];
+  if (pendingUserId && (!user || user.emailVerified)) {
+    res.status(400).json({ error: "This registration is no longer pending." });
+    return;
+  }
+
+  const verificationCode = createVerificationCode();
+  const codeHash = await bcrypt.hash(verificationCode, 10);
+  if (pendingRegistration) {
+    pendingRegistration.codeHash = codeHash;
+    pendingRegistration.codeExpiresAt = Date.now() + 10 * 60 * 1000;
+    (req.session as any).pendingRegistration = pendingRegistration;
+  } else {
+    await db.update(usersTable)
+      .set({
+        twoFactorCode: codeHash,
+        twoFactorCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000),
+      })
+      .where(eq(usersTable.id, user.id));
+  }
+
+  try {
+    await sendEmail(
+      pendingRegistration?.email ?? user.email,
+      "Verify your Steam Family account",
+      registrationCodeEmailHtml(verificationCode, pendingRegistration?.username ?? user.username),
+    );
+  } catch {
+    res.status(500).json({ error: "We couldn't send the verification code. Please try again." });
+    return;
+  }
+
+  res.json({ message: "Verification code sent." });
 });
 
 router.post("/login", async (req, res) => {
@@ -207,6 +256,34 @@ router.post("/login", async (req, res) => {
   const valid = await bcrypt.compare(password, user.passwordHash);
   if (!valid) {
     res.status(401).json({ error: "Invalid credentials" });
+    return;
+  }
+
+  if (!user.emailVerified) {
+    const verificationCode = createVerificationCode();
+    const codeHash = await bcrypt.hash(verificationCode, 10);
+    await db.update(usersTable)
+      .set({ twoFactorCode: codeHash, twoFactorCodeExpiresAt: new Date(Date.now() + 10 * 60 * 1000) })
+      .where(eq(usersTable.id, user.id));
+
+    try {
+      await sendEmail(user.email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, user.username));
+    } catch {
+      res.status(500).json({ error: "We couldn't send the verification code. Please try again." });
+      return;
+    }
+
+    req.session.regenerate((err: any) => {
+      if (err) { res.status(500).json({ error: "Session error" }); return; }
+      (req.session as any).pendingRegistrationUserId = user.id;
+      req.session.save((saveErr: any) => {
+        if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
+        res.status(403).json({
+          requiresEmailVerification: true,
+          email: user.email,
+        });
+      });
+    });
     return;
   }
 

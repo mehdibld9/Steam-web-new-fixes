@@ -41,6 +41,10 @@ export default function Register() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setSubmitError("");
+    if (requiresVerification) {
+      await onVerifyRegistration();
+      return;
+    }
     try {
       const result = await registerUser.mutateAsync({
         data: { username: values.username, email: values.email, password: values.password },
@@ -55,6 +59,44 @@ export default function Register() {
       }
     } catch (e: any) {
       setSubmitError(e.message || "Failed to create account. Username or email may already be taken.");
+    }
+  }
+
+  async function onResendCode() {
+    setVerificationError("");
+    setVerificationLoading(true);
+    try {
+      const res = await fetch("/api/auth/resend-registration-code", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not send the code.");
+    } catch (e: any) {
+      setVerificationError(e.message || "Could not send the verification code.");
+    } finally {
+      setVerificationLoading(false);
+    }
+  }
+
+  async function onGetCode() {
+    setSubmitError("");
+    setVerificationError("");
+    const valid = await form.trigger(["username", "email", "password"]);
+    if (!valid) return;
+    if (requiresVerification) {
+      await onResendCode();
+      return;
+    }
+    try {
+      const values = form.getValues();
+      await registerUser.mutateAsync({
+        data: { username: values.username, email: values.email, password: values.password },
+      });
+      setRequiresVerification(true);
+      setTimeout(() => verificationInputRef.current?.focus(), 100);
+    } catch (e: any) {
+      setSubmitError(e.message || "Could not send the verification code.");
     }
   }
 
@@ -113,36 +155,6 @@ export default function Register() {
               <CheckCircle2 className="h-12 w-12 text-green-400" />
               <p className="font-bold text-lg text-foreground">Account verified! Redirecting…</p>
             </div>
-          ) : requiresVerification ? (
-            <div>
-              <div className="mb-8">
-                <ShieldCheck className="h-10 w-10 text-primary mb-4" />
-                <h2 className="text-3xl font-black text-foreground">Verify your email</h2>
-                <p className="text-muted-foreground mt-2 flex items-center gap-1.5">
-                  <Mail className="h-4 w-4 shrink-0" />
-                  We sent a 6-digit code to your email. It expires in 10 minutes.
-                </p>
-              </div>
-              {verificationError && (
-                <div className="flex items-start gap-3 bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3 text-sm text-red-400 mb-4">
-                  <Zap className="h-4 w-4 mt-0.5 shrink-0" />{verificationError}
-                </div>
-              )}
-              <div className="space-y-4">
-                <Input
-                  ref={verificationInputRef}
-                  value={verificationCode}
-                  onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                  onKeyDown={(e) => { if (e.key === "Enter" && verificationCode.length === 6) onVerifyRegistration(); }}
-                  placeholder="000000"
-                  maxLength={6}
-                  className="h-14 text-center text-3xl font-mono tracking-widest bg-secondary/40 border-border rounded-xl"
-                />
-                <Button className="w-full h-12 font-bold rounded-xl text-base" onClick={onVerifyRegistration} disabled={verificationCode.length !== 6 || verificationLoading}>
-                  {verificationLoading ? "Verifying…" : "Verify & Create Account"}
-                </Button>
-              </div>
-            </div>
           ) : (
             <>
               <div className="mb-8">
@@ -197,6 +209,27 @@ export default function Register() {
                       </FormItem>
                     )}
                   />
+
+                  <div className="space-y-1.5">
+                    <label className="text-sm font-semibold text-foreground">Verify Code</label>
+                    <div className="flex gap-2">
+                      <Input
+                        ref={verificationInputRef}
+                        value={verificationCode}
+                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="123456"
+                        maxLength={6}
+                        className="h-12 flex-1 bg-secondary/40 border-border focus:border-primary/60 rounded-xl font-mono tracking-widest"
+                      />
+                      <Button type="button" variant="outline" className="h-12 rounded-xl px-4" onClick={onGetCode} disabled={registerUser.isPending || verificationLoading}>
+                        {registerUser.isPending || verificationLoading ? "Sending…" : "Get Code"}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {requiresVerification ? "Enter the code sent to your email. It expires in 10 minutes." : "Get a code to finish creating your account."}
+                    </p>
+                    {verificationError && <p className="text-xs text-red-400">{verificationError}</p>}
+                  </div>
 
                   <FormField
                     control={form.control}
@@ -262,7 +295,11 @@ export default function Register() {
                     disabled={registerUser.isPending}
                     data-testid="button-register-submit"
                   >
-                    {registerUser.isPending ? "Creating account…" : "Create Account"}
+                    {registerUser.isPending
+                      ? "Creating account…"
+                      : requiresVerification
+                        ? "Verify & Create Account"
+                        : "Create Account"}
                   </Button>
                 </form>
               </Form>

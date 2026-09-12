@@ -30,7 +30,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   const cfg = await getSmtpConfig();
 
   if (!cfg.smtp_host || !cfg.smtp_user || !cfg.smtp_pass) {
-    throw new Error("SMTP is not configured. Please set it in the admin panel under Site Settings → Email (SMTP).");
+    throw new Error("SMTP is not configured. Please set it in the admin panel under Site Settings â†’ Email (SMTP).");
   }
 
   const transporter = nodemailer.createTransport({
@@ -52,7 +52,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   });
 }
 
-// ─── Shared email base template ───────────────────────────────────────────────
+// â”€â”€â”€ Shared email base template â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function emailBase(content: string): string {
   return `
 <!DOCTYPE html>
@@ -73,9 +73,9 @@ function emailBase(content: string): string {
             <td style="padding-bottom:28px;">
               <table cellpadding="0" cellspacing="0">
                 <tr>
-                   <td style="background:#14b8a6;width:8px;height:32px;border-radius:4px;"></td>
+                   <td style="background:#00b894;width:8px;height:32px;border-radius:4px;"></td>
                   <td style="padding-left:12px;">
-                     <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">Steam <span style="color:#2dd4bf;">Family</span></span>
+                     <span style="font-size:20px;font-weight:900;color:#ffffff;letter-spacing:-0.5px;">Steam <span style="color:#00d6b4;">Family</span></span>
                   </td>
                 </tr>
               </table>
@@ -106,86 +106,58 @@ function emailBase(content: string): string {
 </html>`;
 }
 
-// ─── Email verification ────────────────────────────────────────────────────────
-export function verificationEmailHtml(verifyUrl: string, username: string): string {
+// â”€â”€â”€ Email verification â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export function verificationEmailHtml(_verifyUrl: string, username: string): string {
   return emailBase(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Verify your email</h1>
     <p style="margin:0 0 28px;color:#a1a1aa;font-size:15px;line-height:1.6;">
-      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> — one quick step before you're in. Click the button below to confirm your email address.
+      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> â€” your email verification is ready. Enter the code provided by Steam Family to continue.
     </p>
-
-    <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
-      <tr>
-        <td style="background:#14b8a6;border-radius:10px;">
-          <a href="${escapeHtml(verifyUrl)}"
-             style="display:inline-block;padding:14px 32px;color:#09090b;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;letter-spacing:-0.2px;">
-            Verify Email Address
-          </a>
-        </td>
-      </tr>
-    </table>
-
-    <p style="margin:0 0 16px;color:#71717a;font-size:13px;line-height:1.6;">
-      Or copy and paste this link into your browser:
-    </p>
-    <div style="background:#09090b;border:1px solid #27272a;border-radius:8px;padding:12px 16px;margin-bottom:24px;word-break:break-all;">
-      <span style="color:#2dd4bf;font-size:13px;font-family:monospace;">${escapeHtml(verifyUrl)}</span>
-    </div>
 
     <div style="border-top:1px solid #27272a;padding-top:20px;">
       <p style="margin:0;color:#52525b;font-size:13px;line-height:1.6;">
-        This link expires in <strong style="color:#a1a1aa;">24 hours</strong>. If you didn't create an account, no action is needed.
+        This verification request expires in <strong style="color:#a1a1aa;">24 hours</strong>. If you didn't create an account, no action is needed.
       </p>
     </div>
   `);
 }
 
-// ─── 2FA login code ────────────────────────────────────────────────────────────
+// â”€â”€â”€ 2FA login code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function twoFactorEmailHtml(code: string, username: string): string {
   return emailBase(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Your login code</h1>
     <p style="margin:0 0 28px;color:#a1a1aa;font-size:15px;line-height:1.6;">
-      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> — use the code below to complete your sign-in. It expires in 10 minutes.
+      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> â€” use the code below to complete your sign-in. It expires in 10 minutes.
     </p>
 
-    <div style="background:#09090b;border:1px solid #14b8a6;border-radius:12px;padding:28px;text-align:center;margin-bottom:28px;">
-      <span style="font-size:44px;font-weight:900;letter-spacing:12px;color:#2dd4bf;font-family:monospace;">${escapeHtml(code)}</span>
+    <div style="background:#09090b;border:1px solid #00b894;border-radius:12px;padding:28px;text-align:center;margin-bottom:28px;">
+      <span style="font-size:44px;font-weight:900;letter-spacing:12px;color:#00d6b4;font-family:monospace;">${escapeHtml(code)}</span>
     </div>
 
     <div style="border-top:1px solid #27272a;padding-top:20px;">
       <p style="margin:0;color:#52525b;font-size:13px;line-height:1.6;">
-        If you didn't try to sign in, ignore this email — your account is safe.
+        If you didn't try to sign in, ignore this email â€” your account is safe.
       </p>
     </div>
   `);
 }
 
-// ─── Registration email code ──────────────────────────────────────────────────
-export function registrationCodeEmailHtml(code: string, username: string, verifyUrl: string): string {
+// â”€â”€â”€ Registration email code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+export function registrationCodeEmailHtml(code: string, username: string): string {
   return emailBase(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Finish creating your account</h1>
     <p style="margin:0 0 24px;color:#a1a1aa;font-size:15px;line-height:1.6;">
-      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> — enter this code in Steam Family to verify your email and activate your account.
+      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> â€” enter this code in Steam Family to verify your email and activate your account.
     </p>
 
-    <div style="background:#09090b;border:1px solid #14b8a6;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+    <div style="background:#09090b;border:1px solid #00b894;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
       <p style="margin:0 0 10px;color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Your verification code</p>
-      <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#2dd4bf;font-family:monospace;">${escapeHtml(code)}</span>
+      <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#00d6b4;font-family:monospace;">${escapeHtml(code)}</span>
     </div>
 
     <p style="margin:0 0 16px;color:#71717a;font-size:13px;line-height:1.6;">
-      This code expires in <strong style="color:#a1a1aa;">10 minutes</strong>. You can also verify using the button below.
+      This code expires in <strong style="color:#a1a1aa;">10 minutes</strong>. Enter it in the verification field on Steam Family to finish creating your account.
     </p>
-
-    <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-      <tr>
-        <td style="background:#14b8a6;border-radius:10px;">
-          <a href="${escapeHtml(verifyUrl)}" style="display:inline-block;padding:14px 32px;color:#09090b;font-size:15px;font-weight:700;text-decoration:none;border-radius:10px;">
-            Open Verification Page
-          </a>
-        </td>
-      </tr>
-    </table>
 
     <div style="border-top:1px solid #27272a;padding-top:20px;">
       <p style="margin:0;color:#52525b;font-size:13px;line-height:1.6;">
@@ -195,38 +167,38 @@ export function registrationCodeEmailHtml(code: string, username: string, verify
   `);
 }
 
-// ─── Password reset OTP (no links — avoids spam filters) ─────────────────────
+// â”€â”€â”€ Password reset OTP (no links â€” avoids spam filters) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function passwordResetOtpEmailHtml(code: string, username: string): string {
   return emailBase(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Reset your password</h1>
     <p style="margin:0 0 28px;color:#a1a1aa;font-size:15px;line-height:1.6;">
-      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> — enter the code below on the site to choose a new password. It expires in <strong style="color:#ffffff;">1 hour</strong>.
+      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> â€” enter the code below on the site to choose a new password. It expires in <strong style="color:#ffffff;">1 hour</strong>.
     </p>
 
-    <div style="background:#09090b;border:1px solid #14b8a6;border-radius:12px;padding:28px;text-align:center;margin-bottom:28px;">
+    <div style="background:#09090b;border:1px solid #00b894;border-radius:12px;padding:28px;text-align:center;margin-bottom:28px;">
       <p style="margin:0 0 10px;color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Password reset code</p>
-      <span style="font-size:44px;font-weight:900;letter-spacing:12px;color:#2dd4bf;font-family:monospace;">${escapeHtml(code)}</span>
+      <span style="font-size:44px;font-weight:900;letter-spacing:12px;color:#00d6b4;font-family:monospace;">${escapeHtml(code)}</span>
     </div>
 
     <div style="border-top:1px solid #27272a;padding-top:20px;">
       <p style="margin:0;color:#52525b;font-size:13px;line-height:1.6;">
-        If you did not request a password reset, you can safely ignore this message — your account is unchanged.
+        If you did not request a password reset, you can safely ignore this message â€” your account is unchanged.
       </p>
     </div>
   `);
 }
 
-// ─── Password change code ─────────────────────────────────────────────────────
+// â”€â”€â”€ Password change code â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 export function passwordChangeEmailHtml(code: string, username: string): string {
   return emailBase(`
     <h1 style="margin:0 0 8px;font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">Confirm password change</h1>
     <p style="margin:0 0 24px;color:#a1a1aa;font-size:15px;line-height:1.6;">
-      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> — enter this code in Steam Family to finish changing your password.
+      Hi <strong style="color:#ffffff;">${escapeHtml(username)}</strong> â€” enter this code in Steam Family to finish changing your password.
     </p>
 
-    <div style="background:#09090b;border:1px solid #14b8a6;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
+    <div style="background:#09090b;border:1px solid #00b894;border-radius:12px;padding:24px;text-align:center;margin-bottom:24px;">
       <p style="margin:0 0 10px;color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;font-weight:700;">Password change code</p>
-      <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#2dd4bf;font-family:monospace;">${escapeHtml(code)}</span>
+      <span style="font-size:42px;font-weight:900;letter-spacing:10px;color:#00d6b4;font-family:monospace;">${escapeHtml(code)}</span>
     </div>
 
     <div style="border-top:1px solid #27272a;padding-top:20px;">

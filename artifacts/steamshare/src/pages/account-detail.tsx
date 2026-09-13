@@ -894,6 +894,18 @@ export default function AccountDetail() {
                     user &&
                     user.id !== account.userId
                   ) {
+                    if (account.pointsCost > 0) {
+                      return (
+                        <div className="mt-3 p-3 rounded-lg bg-primary/5 border border-primary/20 text-xs sm:text-sm text-center">
+                          <Link
+                            href="/faq"
+                            className="font-medium text-primary underline underline-offset-2 hover:text-primary/80"
+                          >
+                            How to get points
+                          </Link>
+                        </div>
+                      );
+                    }
                     return (
                       <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 text-xs sm:text-sm text-center space-y-1">
                         <p className="font-medium text-amber-600">

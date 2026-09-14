@@ -287,7 +287,7 @@ router.patch("/reports/:reportId/action", requireModOrAdmin, async (req, res) =>
   await sendBotMessage(
     report.reporterId,
     `Your report (#${report.id}) has been reviewed and actioned by our moderation team. Thank you for helping keep the community safe.`,
-  ).catch(() => {});
+  );
 
   res.json({ ok: true });
 });
@@ -412,7 +412,7 @@ router.post("/reports/:reportId/refund", requireModOrAdmin, async (req, res) => 
   const customMessage = req.body?.message?.trim();
   const refundMessage =
     customMessage || `Report approved and ${refundAmount} points refunded`;
-  await sendBotMessage(report.reporterId, refundMessage).catch(() => {});
+  await sendBotMessage(report.reporterId, refundMessage);
 
   res.json({
     ok: true,

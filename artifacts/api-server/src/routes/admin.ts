@@ -270,6 +270,28 @@ router.post("/accounts/:accountId/reject", requireModOrAdmin, async (req, res) =
 });
 
 // --- Reports ---
+// Action a report and notify its reporter.
+router.patch("/reports/:reportId/action", requireModOrAdmin, async (req, res) => {
+  const reportId = parseInt(req.params.reportId, 10);
+  const [report] = await db
+    .update(reportsTable)
+    .set({ isActioned: true, isDismissed: true })
+    .where(eq(reportsTable.id, reportId))
+    .returning();
+
+  if (!report) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+
+  await sendBotMessage(
+    report.reporterId,
+    `Your report (#${report.id}) has been reviewed and actioned by our moderation team. Thank you for helping keep the community safe.`,
+  ).catch(() => {});
+
+  res.json({ ok: true });
+});
+
 router.get("/reports", requireModOrAdmin, async (req, res) => {
   const reports = await db
     .select({

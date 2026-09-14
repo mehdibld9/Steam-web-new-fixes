@@ -2,7 +2,7 @@
 import express from "express";
 import { db, reportsTable, usersTable, notificationsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
-import { requireAuth, requireAdmin } from "../middlewares/auth";
+import { requireAuth, requireModOrAdmin } from "../middlewares/auth";
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.post("/", requireAuth, async (req, res) => {
   res.status(201).json(report);
 });
 
-router.patch("/:id/action", requireAdmin, async (req, res) => {
+router.patch("/:id/action", requireModOrAdmin, async (req, res) => {
   const reportId = parseInt(req.params.id, 10);
 
   const [report] = await db

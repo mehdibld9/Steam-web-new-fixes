@@ -97,17 +97,28 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
     enabled: !!user,
     refetchInterval: 30_000,
   });
-  const notifCount = notifUnread;
+  const notifCount = appNotifications.filter((notification) => !notification.isRead).length;
 
   const openBell = () => {
-    if (!bellOpen && appNotifications.length > 0) {
-      void deleteViewedNotifications().catch((error) => {
-        console.error("Failed to delete viewed notifications", error);
-      });
-      queryClient.setQueryData(["notifications-unread-count"], 0);
-    }
     setBellOpen(!bellOpen);
   };
+
+  useEffect(() => {
+    if (!bellOpen || appNotifications.length === 0) return;
+
+    const timer = window.setTimeout(() => {
+      void deleteViewedNotifications()
+        .then(() => {
+          queryClient.setQueryData<any[]>(["notifications"], []);
+          queryClient.setQueryData(["notifications-unread-count"], 0);
+        })
+        .catch((error) => {
+          console.error("Failed to delete viewed notifications", error);
+        });
+    }, 1500);
+
+    return () => window.clearTimeout(timer);
+  }, [bellOpen, appNotifications.length, queryClient]);
 
   const handleNotificationClick = async (id: number) => {
     queryClient.setQueryData<any[]>(["notifications"], (current = []) =>

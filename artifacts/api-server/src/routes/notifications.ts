@@ -39,6 +39,15 @@ router.post("/read-all", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// DELETE /api/notifications/viewed — remove all notifications shown to the user
+router.delete("/viewed", requireAuth, async (req, res) => {
+  const userId = req.session.userId!;
+  await db
+    .delete(notificationsTable)
+    .where(eq(notificationsTable.userId, userId));
+  res.json({ ok: true });
+});
+
 // DELETE /api/notifications/:id — remove a notification after it is viewed
 router.delete("/:id", requireAuth, async (req, res) => {
   const userId = req.session.userId!;

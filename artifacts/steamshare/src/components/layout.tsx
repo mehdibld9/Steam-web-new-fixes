@@ -70,13 +70,19 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
 
   const activeGiveaways: any[] = [];
   const newGiveaways: any[] = [];
-  const { data: appNotifications = [] } = useQuery({
+  const {
+    data: appNotifications = [],
+    refetch: refetchNotifications,
+  } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
     enabled: !!user,
     refetchInterval: 30_000,
   });
-  const { data: notifUnread = 0 } = useQuery({
+  const {
+    data: notifUnread = 0,
+    refetch: refetchNotificationCount,
+  } = useQuery({
     queryKey: ["notifications-unread-count"],
     queryFn: async () => {
       const res = await fetch("/api/notifications/unread/count", {
@@ -91,7 +97,13 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
   });
   const notifCount = appNotifications.filter((notification) => !notification.isRead).length;
 
-  const openBell = () => {
+  const openBell = async () => {
+    if (!bellOpen) {
+      await Promise.all([
+        refetchNotifications(),
+        refetchNotificationCount(),
+      ]);
+    }
     setBellOpen(!bellOpen);
   };
 

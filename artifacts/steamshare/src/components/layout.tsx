@@ -39,12 +39,29 @@ async function deleteNotification(id: number): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete notification");
 }
 
-async function deleteViewedNotifications(): Promise<void> {
-  const res = await fetch("/api/notifications/viewed", {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to delete viewed notifications");
+const VIEWED_NOTIFICATIONS_KEY = "steam-family-viewed-notifications";
+
+function readViewedNotificationDeadlines(): Record<string, number> {
+  try {
+    return JSON.parse(
+      localStorage.getItem(VIEWED_NOTIFICATIONS_KEY) || "{}",
+    ) as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeViewedNotificationDeadlines(
+  deadlines: Record<string, number>,
+): void {
+  try {
+    localStorage.setItem(
+      VIEWED_NOTIFICATIONS_KEY,
+      JSON.stringify(deadlines),
+    );
+  } catch {
+    // Notification cleanup still runs for the current page when storage is unavailable.
+  }
 }
 
 
@@ -107,32 +124,56 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
 
   const openBell = async () => {
     if (!bellOpen) {
-      await Promise.all([
-        refetchNotifications(),
-        refetchNotificationCount(),
-      ]);
+      const { data: latestNotifications = [] } = await refetchNotifications();
+      const deadlines = readViewedNotificationDeadlines();
+      const expiresAt = Date.now() + 60_000;
+      for (const notification of latestNotifications) {
+        deadlines[String(notification.id)] ??= expiresAt;
+      }
+      writeViewedNotificationDeadlines(deadlines);
+      await refetchNotificationCount();
     }
     setBellOpen(!bellOpen);
   };
 
   useEffect(() => {
-    if (!bellOpen || appNotifications.length === 0) return;
+    const deadlines = readViewedNotificationDeadlines();
+    const now = Date.now();
+    const expiredIds = Object.entries(deadlines)
+      .filter(([, expiresAt]) => expiresAt <= now)
+      .map(([id]) => Number(id))
+      .filter(Number.isInteger);
 
-    const timer = window.setTimeout(() => {
-      void deleteViewedNotifications()
+    if (expiredIds.length > 0) {
+      for (const id of expiredIds) delete deadlines[String(id)];
+      writeViewedNotificationDeadlines(deadlines);
+      void Promise.all(expiredIds.map((id) => deleteNotification(id)))
         .then(() => {
-          queryClient.setQueryData<any[]>(["notifications"], []);
-          queryClient.setQueryData(["notifications-unread-count"], 0);
+          queryClient.setQueryData<any[]>(["notifications"], (current = []) =>
+            current.filter((notification) => !expiredIds.includes(notification.id)),
+          );
+          queryClient.invalidateQueries({ queryKey: ["notifications-unread-count"] });
         })
         .catch((error) => {
-          console.error("Failed to delete viewed notifications", error);
+          console.error("Failed to delete expired notifications", error);
         });
-    }, 60_000);
+    }
 
+    const nextExpiry = Object.values(deadlines)
+      .filter((expiresAt) => expiresAt > now)
+      .sort((a, b) => a - b)[0];
+    if (!nextExpiry) return;
+
+    const timer = window.setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    }, Math.max(0, nextExpiry - now));
     return () => window.clearTimeout(timer);
-  }, [bellOpen, appNotifications.length, queryClient]);
+  }, [appNotifications, queryClient]);
 
   const handleNotificationClick = async (id: number) => {
+    const deadlines = readViewedNotificationDeadlines();
+    delete deadlines[String(id)];
+    writeViewedNotificationDeadlines(deadlines);
     queryClient.setQueryData<any[]>(["notifications"], (current = []) =>
       current.filter((notification) => notification.id !== id),
     );

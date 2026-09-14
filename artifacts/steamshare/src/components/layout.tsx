@@ -39,14 +39,6 @@ async function deleteNotification(id: number): Promise<void> {
   if (!res.ok) throw new Error("Failed to delete notification");
 }
 
-async function deleteViewedNotifications(): Promise<void> {
-  const res = await fetch("/api/notifications/viewed", {
-    method: "DELETE",
-    credentials: "include",
-  });
-  if (!res.ok) throw new Error("Failed to delete viewed notifications");
-}
-
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -102,23 +94,6 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
   const openBell = () => {
     setBellOpen(!bellOpen);
   };
-
-  useEffect(() => {
-    if (!bellOpen || appNotifications.length === 0) return;
-
-    const timer = window.setTimeout(() => {
-      void deleteViewedNotifications()
-        .then(() => {
-          queryClient.setQueryData<any[]>(["notifications"], []);
-          queryClient.setQueryData(["notifications-unread-count"], 0);
-        })
-        .catch((error) => {
-          console.error("Failed to delete viewed notifications", error);
-        });
-    }, 1500);
-
-    return () => window.clearTimeout(timer);
-  }, [bellOpen, appNotifications.length, queryClient]);
 
   const handleNotificationClick = async (id: number) => {
     queryClient.setQueryData<any[]>(["notifications"], (current = []) =>

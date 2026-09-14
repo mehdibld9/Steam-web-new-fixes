@@ -1,6 +1,6 @@
 // @ts-nocheck
 import express from "express";
-import { db, usersTable, accountsTable, reportsTable, commentsTable, ipBansTable } from "@workspace/db";
+import { db, usersTable, accountsTable, reportsTable, commentsTable, ipBansTable, accountClaimsTable } from "@workspace/db";
 import { eq, desc, sql, and, inArray, isNotNull, or } from "drizzle-orm";
 import { requireAdmin, requireModOrAdmin } from "../middlewares/auth";
 import { sendBotMessage } from "../lib/adminBot";
@@ -336,6 +336,67 @@ router.delete("/comments/:commentId", requireModOrAdmin, async (req, res) => {
   const commentId = parseInt(req.params.commentId, 10);
   await db.delete(commentsTable).where(eq(commentsTable.id, commentId));
   res.json({ ok: true });
+});
+
+// Refund points for a reported non-working account.
+router.post("/reports/:reportId/refund", requireModOrAdmin, async (req, res) => {
+  const reportId = parseInt(req.params.reportId, 10);
+  const [report] = await db
+    .select()
+    .from(reportsTable)
+    .where(eq(reportsTable.id, reportId))
+    .limit(1);
+
+  if (!report) {
+    res.status(404).json({ error: "Report not found" });
+    return;
+  }
+  if (report.targetType !== "account") {
+    res.status(400).json({ error: "Refunds can only be processed for account reports" });
+    return;
+  }
+
+  const [account] = await db
+    .select()
+    .from(accountsTable)
+    .where(eq(accountsTable.id, report.targetId))
+    .limit(1);
+  const [claim] = await db
+    .select()
+    .from(accountClaimsTable)
+    .where(
+      and(
+        eq(accountClaimsTable.userId, report.reporterId),
+        eq(accountClaimsTable.accountId, report.targetId),
+      ),
+    )
+    .limit(1);
+
+  const customAmount = req.body?.amount ? Number(req.body.amount) : null;
+  const refundAmount = customAmount ?? (claim?.pointsSpent || account?.pointsCost || 0);
+
+  if (refundAmount > 0) {
+    await db
+      .update(usersTable)
+      .set({ points: sql`${usersTable.points} + ${refundAmount}` })
+      .where(eq(usersTable.id, report.reporterId));
+  }
+
+  await db
+    .update(reportsTable)
+    .set({ isActioned: true, isDismissed: true })
+    .where(eq(reportsTable.id, reportId));
+
+  const customMessage = req.body?.message?.trim();
+  const refundMessage =
+    customMessage || `Report approved and ${refundAmount} points refunded`;
+  await sendBotMessage(report.reporterId, refundMessage).catch(() => {});
+
+  res.json({
+    ok: true,
+    amount: refundAmount,
+    message: `Refund of ${refundAmount} points issued successfully`,
+  });
 });
 
 // Admin Dashboard stats

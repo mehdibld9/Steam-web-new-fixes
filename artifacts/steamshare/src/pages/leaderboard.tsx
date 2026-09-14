@@ -66,7 +66,13 @@ export default function Leaderboard() {
           <div className="flex items-center gap-1.5 flex-wrap min-w-0">
             {(() => {
               const nc = user.nameColor;
-              const cls = nc === "rainbow" ? "rainbow-text" : nc === "fire" ? "fire-text" : nc === "ocean" ? "ocean-text" : nc === "galaxy" ? "galaxy-text" : nc === "neon" ? "neon-text" : nc === "gold" ? "gold-text" : null;
+              const classes: Record<string, string> = {
+                rainbow: "rainbow-text", fire: "fire-text", ocean: "ocean-text",
+                galaxy: "galaxy-text", neon: "neon-text", gold: "gold-text",
+                aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
+                toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
+              };
+              const cls = nc ? (classes[nc] ?? null) : null;
               return (
                 <span className={`font-semibold text-sm sm:text-base max-w-[100px] sm:max-w-none${cls ? ` ${cls}` : ""} ${!cls && !nc && highlight ? "text-primary" : !cls && !nc ? "group-hover:text-primary transition-colors" : ""}`} style={!cls && nc ? { color: nc } : undefined}>
                   {user.displayName || user.username}

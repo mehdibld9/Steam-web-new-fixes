@@ -515,6 +515,31 @@ export default function Messages() {
   const isBot = selectedUsername === "Admin Bot";
 
   return (
+    <Layout>
+      <div className="max-w-2xl mx-auto px-4 py-16">
+        <div className="rounded-2xl border border-border bg-card p-8 text-center shadow-sm">
+          <MessageSquare className="h-12 w-12 text-primary mx-auto mb-4" />
+          <h1 className="text-2xl font-bold text-foreground">
+            Private messages are temporarily unavailable
+          </h1>
+          <p className="text-muted-foreground mt-3">
+            Join our Telegram group for support, announcements, and community
+            updates.
+          </p>
+          <a
+            href="https://t.me/steam_family_chat"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex mt-6 rounded-lg bg-primary px-5 py-2.5 font-semibold text-primary-foreground hover:opacity-90 transition-opacity"
+          >
+            Join us on Telegram
+          </a>
+        </div>
+      </div>
+    </Layout>
+  );
+
+  return (
     <Layout noFooter>
       <div className="container mx-auto px-4 py-6 max-w-5xl">
         <button
@@ -584,20 +609,13 @@ export default function Messages() {
                             const nc = premiumActive
                               ? conv.partner_name_color
                               : null;
-                            const cls =
-                              nc === "rainbow"
-                                ? "rainbow-text"
-                                : nc === "fire"
-                                  ? "fire-text"
-                                  : nc === "ocean"
-                                    ? "ocean-text"
-                                    : nc === "galaxy"
-                                      ? "galaxy-text"
-                                      : nc === "neon"
-                                        ? "neon-text"
-                                        : nc === "gold"
-                                          ? "gold-text"
-                                          : null;
+                            const classes: Record<string, string> = {
+                              rainbow: "rainbow-text", fire: "fire-text", ocean: "ocean-text",
+                              galaxy: "galaxy-text", neon: "neon-text", gold: "gold-text",
+                              aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
+                              toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
+                            };
+                            const cls = nc ? (classes[nc] ?? null) : null;
                             return (
                               <span
                                 className={`font-semibold text-sm${cls ? ` ${cls}` : ""}`}
@@ -687,20 +705,13 @@ export default function Messages() {
                     ) : (
                       (() => {
                         const nc = selectedNameColor;
-                        const cls =
-                          nc === "rainbow"
-                            ? "rainbow-text"
-                            : nc === "fire"
-                              ? "fire-text"
-                              : nc === "ocean"
-                                ? "ocean-text"
-                                : nc === "galaxy"
-                                  ? "galaxy-text"
-                                  : nc === "neon"
-                                    ? "neon-text"
-                                    : nc === "gold"
-                                      ? "gold-text"
-                                      : null;
+                        const classes: Record<string, string> = {
+                          rainbow: "rainbow-text", fire: "fire-text", ocean: "ocean-text",
+                          galaxy: "galaxy-text", neon: "neon-text", gold: "gold-text",
+                          aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
+                          toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
+                        };
+                        const cls = nc ? (classes[nc] ?? null) : null;
                         return (
                           <Link
                             href={`/profile/${selectedUserId}`}

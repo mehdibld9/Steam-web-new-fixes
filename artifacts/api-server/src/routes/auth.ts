@@ -19,8 +19,7 @@ const router = express.Router();
 function normalizePremiumVisuals(user: any) {
   const active =
     user.premiumTier &&
-    user.premiumExpiresAt &&
-    new Date(user.premiumExpiresAt) > new Date();
+    (!user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date());
 
   return {
     ...user,

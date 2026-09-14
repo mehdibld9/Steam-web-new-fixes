@@ -74,7 +74,7 @@ router.get("/", async (req, res) => {
   }
   res.json(
     comments.map((c) => {
-      const isPremiumActive = c.premiumTier && c.premiumExpiresAt && new Date(c.premiumExpiresAt) > now;
+      const isPremiumActive = c.premiumTier && (!c.premiumExpiresAt || new Date(c.premiumExpiresAt) > now);
       return {
         ...c,
         username: c.username ?? "",
@@ -159,7 +159,7 @@ router.post("/", requireAuth, async (req, res) => {
     }).catch((e) => logger.error({ err: e }, "Failed to send reply notification"));
   }
 
-  const isPremiumActive = user?.premiumTier && user?.premiumExpiresAt && new Date(user.premiumExpiresAt) > new Date();
+  const isPremiumActive = user?.premiumTier && (!user.premiumExpiresAt || new Date(user.premiumExpiresAt) > new Date());
   res.status(201).json({
     ...comment,
     username: user?.username ?? "",

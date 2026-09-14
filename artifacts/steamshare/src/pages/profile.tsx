@@ -214,8 +214,15 @@ export default function Profile() {
                   <span className="gold-text">{displayedName}</span>
                 ) : (
                   <span
+                    className={({
+                      aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
+                      toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
+                    } as Record<string, string>)[(user as any).nameColor] ?? ""}
                     style={
-                      (user as any).nameColor
+                      (user as any).nameColor &&
+                      !({
+                        aurora: true, sunset: true, ice: true, toxic: true, rose: true, lava: true,
+                      } as Record<string, boolean>)[(user as any).nameColor]
                         ? { color: (user as any).nameColor }
                         : undefined
                     }

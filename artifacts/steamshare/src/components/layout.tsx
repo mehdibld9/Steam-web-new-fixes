@@ -25,6 +25,20 @@ async function fetchUnreadCount(): Promise<number> {
   }
 }
 
+async function fetchNotifications(): Promise<any[]> {
+  const res = await fetch("/api/notifications", { credentials: "include" });
+  if (!res.ok) throw new Error("Failed to load notifications");
+  return res.json();
+}
+
+async function deleteNotification(id: number): Promise<void> {
+  const res = await fetch(`/api/notifications/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to delete notification");
+}
+
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", icon: Home },
@@ -54,16 +68,42 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
     refetchInterval: false,
   });
 
-  // Notification and giveaway polling are disabled for now.
-  // Re-enable when the backend endpoints are ready.
   const activeGiveaways: any[] = [];
   const newGiveaways: any[] = [];
-  const appNotifications: any[] = [];
-  const notifUnread = 0;
-  const notifCount = 0;
+  const { data: appNotifications = [] } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: fetchNotifications,
+    enabled: !!user,
+    refetchInterval: 30_000,
+  });
+  const { data: notifUnread = 0 } = useQuery({
+    queryKey: ["notifications-unread-count"],
+    queryFn: async () => {
+      const res = await fetch("/api/notifications/unread/count", {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to load notification count");
+      const data = await res.json();
+      return Number(data.count ?? 0);
+    },
+    enabled: !!user,
+    refetchInterval: 30_000,
+  });
+  const notifCount = notifUnread;
 
   const openBell = () => {
     setBellOpen((o) => !o);
+  };
+
+  const handleNotificationClick = async (id: number) => {
+    queryClient.setQueryData<any[]>(["notifications"], (current = []) =>
+      current.filter((notification) => notification.id !== id),
+    );
+    queryClient.setQueryData(["notifications-unread-count"], (count = 0) =>
+      Math.max(0, Number(count) - 1),
+    );
+    await deleteNotification(id);
+    setBellOpen(false);
   };
 
   // Close dropdowns on outside click
@@ -298,10 +338,10 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
                             );
                             return n.linkUrl ? (
                               <Link key={n.id} href={n.linkUrl}>
-                                <button onClick={() => setBellOpen(false)} className="w-full">{inner}</button>
+                                <button onClick={() => void handleNotificationClick(n.id)} className="w-full">{inner}</button>
                               </Link>
                             ) : (
-                              <div key={n.id}>{inner}</div>
+                              <button key={n.id} onClick={() => void handleNotificationClick(n.id)} className="w-full">{inner}</button>
                             );
                           })}
 
@@ -571,4 +611,3 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
     </div>
   );
 }
-

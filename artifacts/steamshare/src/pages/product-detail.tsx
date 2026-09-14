@@ -336,7 +336,13 @@ export default function ProductDetail() {
                     <div className="flex items-center gap-2">
                       {(() => {
                         const nc = r.nameColor;
-                        const cls = nc === "rainbow" ? "rainbow-text" : nc === "fire" ? "fire-text" : nc === "ocean" ? "ocean-text" : nc === "galaxy" ? "galaxy-text" : nc === "neon" ? "neon-text" : nc === "gold" ? "gold-text" : null;
+                        const classes: Record<string, string> = {
+                          rainbow: "rainbow-text", fire: "fire-text", ocean: "ocean-text",
+                          galaxy: "galaxy-text", neon: "neon-text", gold: "gold-text",
+                          aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
+                          toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
+                        };
+                        const cls = nc ? (classes[nc] ?? null) : null;
                         return (
                           <span className={`text-sm font-semibold${cls ? ` ${cls}` : ""}`} style={!cls && nc ? { color: nc } : undefined}>
                             {r.username || "User"}

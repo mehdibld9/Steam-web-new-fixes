@@ -39,4 +39,24 @@ router.post("/read-all", requireAuth, async (req, res) => {
   res.json({ ok: true });
 });
 
+// DELETE /api/notifications/:id — remove a notification after it is viewed
+router.delete("/:id", requireAuth, async (req, res) => {
+  const userId = req.session.userId!;
+  const notificationId = parseInt(req.params.id, 10);
+  if (!Number.isInteger(notificationId)) {
+    res.status(400).json({ error: "Invalid notification id" });
+    return;
+  }
+
+  await db
+    .delete(notificationsTable)
+    .where(
+      and(
+        eq(notificationsTable.id, notificationId),
+        eq(notificationsTable.userId, userId),
+      ),
+    );
+  res.json({ ok: true });
+});
+
 export default router;

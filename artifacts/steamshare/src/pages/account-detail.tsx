@@ -5,8 +5,6 @@ import {
   useLikeAccount,
   useUnlikeAccount,
   useClaimAccount,
-  useListComments,
-  getListCommentsQueryKey,
   useCreateComment,
   useLikeComment,
   useUnlikeComment,
@@ -25,7 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
-import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Heart,
   Coins,
@@ -198,6 +196,17 @@ async function patchAccount(accountId: number, data: Record<string, unknown>) {
     const e = await res.json().catch(() => ({}));
     throw new Error(e.error || "Failed to update");
   }
+
+  async function fetchAccountComments(accountId: number, page: number) {
+    const res = await fetch(`/api/accounts/${accountId}/comments?page=${page}&limit=5`, {
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to load comments");
+    return {
+      comments: await res.json(),
+      total: Number(res.headers.get("X-Comments-Total") ?? 0),
+    };
+  }
   return res.json();
 }
 
@@ -217,7 +226,15 @@ export default function AccountDetail() {
       retry: false,
     },
   });
-  const { data: comments, isLoading: commentsLoading } = useListComments(id);
+  const [commentsPage, setCommentsPage] = useState(1);
+  const { data: commentsData, isLoading: commentsLoading } = useQuery({
+    queryKey: ["account-comments", id, commentsPage],
+    queryFn: () => fetchAccountComments(id, commentsPage),
+    enabled: id > 0,
+  });
+  const comments = commentsData?.comments ?? [];
+  const commentsTotal = commentsData?.total ?? 0;
+  const commentsTotalPages = Math.max(1, Math.ceil(commentsTotal / 5));
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -1071,7 +1088,7 @@ export default function AccountDetail() {
             <div className="bg-card border border-border rounded-xl p-4 sm:p-6">
               <h3 className="text-base sm:text-xl font-bold mb-4 sm:mb-6 flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />{" "}
-                Discussion ({comments?.length || 0})
+                Discussion ({commentsTotal})
               </h3>
 
               <div className="flex gap-3 sm:gap-4 mb-6 sm:mb-8">
@@ -1110,7 +1127,7 @@ export default function AccountDetail() {
                           });
                           setCommentContent("");
                           queryClient.invalidateQueries({
-                            queryKey: getListCommentsQueryKey(id),
+                            queryKey: ["account-comments", id],
                           });
                         } catch (e: any) {
                           setCommentError(e.message || "Could not post");
@@ -1258,7 +1275,7 @@ export default function AccountDetail() {
                                         commentId: comment.id,
                                       });
                                       queryClient.invalidateQueries({
-                                        queryKey: getListCommentsQueryKey(id),
+                                        queryKey: ["account-comments", id],
                                       });
                                     }}
                                   >
@@ -1287,7 +1304,7 @@ export default function AccountDetail() {
                                         commentId: comment.id,
                                       });
                                     queryClient.invalidateQueries({
-                                      queryKey: getListCommentsQueryKey(id),
+                                      queryKey: ["account-comments", id],
                                     });
                                   }}
                                 >
@@ -1387,7 +1404,7 @@ export default function AccountDetail() {
                                         setReplyToId(null);
                                         setReplyContent("");
                                         queryClient.invalidateQueries({
-                                          queryKey: getListCommentsQueryKey(id),
+                                          queryKey: ["account-comments", id],
                                         });
                                       } catch (e: any) {
                                         toast({
@@ -1475,7 +1492,7 @@ export default function AccountDetail() {
                                             });
                                             queryClient.invalidateQueries({
                                               queryKey:
-                                                getListCommentsQueryKey(id),
+                                                ["account-comments", id],
                                             });
                                           }}
                                         >
@@ -1505,7 +1522,7 @@ export default function AccountDetail() {
                                             });
                                           queryClient.invalidateQueries({
                                             queryKey:
-                                              getListCommentsQueryKey(id),
+                                              ["account-comments", id],
                                           });
                                         }}
                                       >
@@ -1540,6 +1557,26 @@ export default function AccountDetail() {
                     })
                 )}
               </div>
+              {commentsTotalPages > 1 && (
+                <nav
+                  className="flex items-center justify-center gap-1 pt-6 flex-wrap"
+                  aria-label="Comments pagination"
+                >
+                  {Array.from({ length: commentsTotalPages }, (_, index) => index + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant={page === commentsPage ? "default" : "outline"}
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setCommentsPage(page)}
+                      aria-label={`Comments page ${page}`}
+                      aria-current={page === commentsPage ? "page" : undefined}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                </nav>
+              )}
             </div>
           </div>
 

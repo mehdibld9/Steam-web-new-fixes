@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import { db, commentsTable, usersTable, likesTable, accountsTable, notificationsTable } from "@workspace/db";
-import { eq, and, sql, inArray, asc, isNull } from "drizzle-orm";
+import { eq, and, sql, inArray, asc, desc, isNull } from "drizzle-orm";
 import { CreateCommentBody } from "@workspace/api-zod";
 import { requireAuth } from "../middlewares/auth";
 import { filterContent } from "../lib/contentFilter";
@@ -22,8 +22,21 @@ function addXp(userId: number, amount: number) {
 router.get("/", async (req, res) => {
   const accountId = parseInt(req.params.accountId, 10);
   const userId = req.session?.userId;
+  const requestedPage = Number(req.query.page ?? 1);
+  const requestedLimit = Number(req.query.limit ?? 5);
+  const page = Number.isFinite(requestedPage) && requestedPage >= 1
+    ? Math.floor(requestedPage)
+    : 1;
+  const limit = Number.isFinite(requestedLimit) && requestedLimit >= 1
+    ? Math.min(Math.floor(requestedLimit), 20)
+    : 5;
 
-  const comments = await db
+  const [{ total }] = await db
+    .select({ total: sql<number>`count(*)` })
+    .from(commentsTable)
+    .where(and(eq(commentsTable.accountId, accountId), isNull(commentsTable.parentId)));
+
+  const topLevelComments = await db
     .select({
       id: commentsTable.id,
       accountId: commentsTable.accountId,
@@ -43,8 +56,38 @@ router.get("/", async (req, res) => {
     })
     .from(commentsTable)
     .leftJoin(usersTable, eq(commentsTable.userId, usersTable.id))
-    .where(eq(commentsTable.accountId, accountId))
-    .orderBy(asc(commentsTable.createdAt));
+    .where(and(eq(commentsTable.accountId, accountId), isNull(commentsTable.parentId)))
+    .orderBy(desc(commentsTable.createdAt))
+    .limit(limit)
+    .offset((page - 1) * limit);
+
+  const topLevelIds = topLevelComments.map((comment) => comment.id);
+  const replies = topLevelIds.length > 0
+    ? await db
+        .select({
+          id: commentsTable.id,
+          accountId: commentsTable.accountId,
+          userId: commentsTable.userId,
+          parentId: commentsTable.parentId,
+          content: commentsTable.content,
+          likesCount: commentsTable.likesCount,
+          createdAt: commentsTable.createdAt,
+          username: sql<string>`COALESCE(${usersTable.displayName}, ${usersTable.username})`,
+          avatarUrl: usersTable.avatarUrl,
+          premiumTier: usersTable.premiumTier,
+          premiumExpiresAt: usersTable.premiumExpiresAt,
+          nameColor: usersTable.nameColor,
+          badgeType: usersTable.badgeType,
+          badgeIconUrl: usersTable.badgeIconUrl,
+          badgeIconLink: usersTable.badgeIconLink,
+        })
+        .from(commentsTable)
+        .leftJoin(usersTable, eq(commentsTable.userId, usersTable.id))
+        .where(inArray(commentsTable.parentId, topLevelIds))
+        .orderBy(asc(commentsTable.createdAt))
+    : [];
+
+  const comments = [...topLevelComments, ...replies];
 
   let likedIds = new Set<number>();
   if (userId && comments.length > 0) {
@@ -72,6 +115,9 @@ router.get("/", async (req, res) => {
   } else {
     res.set("Cache-Control", "private, max-age=15");
   }
+  res.set("X-Comments-Total", String(total));
+  res.set("X-Comments-Page", String(page));
+  res.set("X-Comments-Limit", String(limit));
   res.json(
     comments.map((c) => {
       const isPremiumActive = c.premiumTier && (!c.premiumExpiresAt || new Date(c.premiumExpiresAt) > now);

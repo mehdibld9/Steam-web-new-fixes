@@ -205,6 +205,9 @@ export default function Register() {
                           />
                         </FormControl>
                         <FormMessage />
+                        <p className="text-xs text-muted-foreground">
+                          No code? Check your spam folder.
+                        </p>
                       </FormItem>
                     )}
                   />

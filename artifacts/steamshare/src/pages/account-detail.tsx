@@ -197,17 +197,18 @@ async function patchAccount(accountId: number, data: Record<string, unknown>) {
     throw new Error(e.error || "Failed to update");
   }
 
-  async function fetchAccountComments(accountId: number, page: number) {
-    const res = await fetch(`/api/accounts/${accountId}/comments?page=${page}&limit=5`, {
-      credentials: "include",
-    });
-    if (!res.ok) throw new Error("Failed to load comments");
-    return {
-      comments: await res.json(),
-      total: Number(res.headers.get("X-Comments-Total") ?? 0),
-    };
-  }
   return res.json();
+}
+
+async function fetchAccountComments(accountId: number, page: number) {
+  const res = await fetch(`/api/accounts/${accountId}/comments?page=${page}&limit=5`, {
+    credentials: "include",
+  });
+  if (!res.ok) throw new Error("Failed to load comments");
+  return {
+    comments: await res.json(),
+    total: Number(res.headers.get("X-Comments-Total") ?? 0),
+  };
 }
 
 export default function AccountDetail() {

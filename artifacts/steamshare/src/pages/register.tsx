@@ -205,9 +205,6 @@ export default function Register() {
                           />
                         </FormControl>
                         <FormMessage />
-                        <p className="text-xs text-muted-foreground">
-                          No code? Check your spam folder.
-                        </p>
                       </FormItem>
                     )}
                   />
@@ -232,6 +229,9 @@ export default function Register() {
                         Enter the code sent to your email. It expires in 10 minutes.
                       </p>
                     )}
+                    <p className="text-xs text-muted-foreground">
+                      No code? Check your spam folder.
+                    </p>
                     {verificationError && <p className="text-xs text-red-400">{verificationError}</p>}
                   </div>
 

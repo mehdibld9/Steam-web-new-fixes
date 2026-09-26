@@ -42,7 +42,7 @@ router.post("/forgot-password", async (req, res) => {
   });
 
   try {
-    await sendEmail(user.email, "Your Steam Family password reset code", passwordResetOtpEmailHtml(code, user.username));
+    await sendEmail(user.email, "SteamFamily: Confirm your password change", passwordResetOtpEmailHtml(code, user.username));
   } catch (emailErr: any) {
     // Log to server so SMTP issues are visible, but don't leak details to the client
     console.error("[forgot-password] Failed to send reset email to", user.email, ":", emailErr?.message ?? emailErr);

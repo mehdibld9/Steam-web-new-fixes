@@ -85,7 +85,7 @@ router.post("/register", async (req, res) => {
   const passwordHash = await bcrypt.hash(password, 10);
 
   try {
-    await sendEmail(email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, username));
+    await sendEmail(email, "SteamFamily: Your verification code", registrationCodeEmailHtml(verificationCode, username));
   } catch (emailErr: any) {
     const message = emailErr?.message ?? "";
     res.status(500).json({
@@ -218,7 +218,7 @@ router.post("/resend-registration-code", async (req, res) => {
   try {
     await sendEmail(
       pendingRegistration?.email ?? user.email,
-      "Verify your Steam Family account",
+      "SteamFamily: Your verification code",
       registrationCodeEmailHtml(verificationCode, pendingRegistration?.username ?? user.username),
     );
   } catch {
@@ -266,7 +266,7 @@ router.post("/login", async (req, res) => {
       .where(eq(usersTable.id, user.id));
 
     try {
-      await sendEmail(user.email, "Verify your Steam Family account", registrationCodeEmailHtml(verificationCode, user.username));
+      await sendEmail(user.email, "SteamFamily: Your verification code", registrationCodeEmailHtml(verificationCode, user.username));
     } catch {
       res.status(500).json({ error: "We couldn't send the verification code. Please try again." });
       return;
@@ -308,7 +308,7 @@ router.post("/login", async (req, res) => {
       .where(eq(usersTable.id, user.id));
 
     try {
-      await sendEmail(user.email, "Your login code", twoFactorEmailHtml(code, user.username));
+      await sendEmail(user.email, "SteamFamily: Your login code", twoFactorEmailHtml(code, user.username));
     } catch (emailErr: any) {
       const msg: string = emailErr?.message ?? "";
       // If SMTP is simply not configured yet, fall through to a normal login
@@ -568,7 +568,7 @@ router.put("/change-password", requireAuth, async (req, res) => {
   try {
     await sendEmail(
       user.email,
-      "Confirm your Steam Family password change",
+      "SteamFamily: Confirm your password change",
       passwordChangeEmailHtml(code, user.username),
     );
   } catch (emailErr: any) {

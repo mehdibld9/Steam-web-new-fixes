@@ -26,6 +26,14 @@ function escapeHtml(value: string): string {
     .replace(/'/g, "&#039;");
 }
 
+function formatSenderAddress(sender: string): { name: string; address: string } {
+  const trimmed = sender.trim();
+  const addressMatch = trimmed.match(/<([^<>]+)>/);
+  const address = (addressMatch?.[1] ?? trimmed).trim();
+
+  return { name: "SteamFamily", address };
+}
+
 export async function sendEmail(to: string, subject: string, html: string): Promise<void> {
   const cfg = await getSmtpConfig();
 
@@ -45,7 +53,7 @@ export async function sendEmail(to: string, subject: string, html: string): Prom
   });
 
   await transporter.sendMail({
-    from: cfg.smtp_from || cfg.smtp_user,
+    from: formatSenderAddress(cfg.smtp_from || cfg.smtp_user),
     to,
     subject,
     html,

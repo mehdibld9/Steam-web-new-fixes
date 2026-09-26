@@ -8,7 +8,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Eye, EyeOff, Zap, X, ShieldCheck, Mail } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 
@@ -31,8 +31,21 @@ export default function Register() {
   const [verificationCode, setVerificationCode] = useState("");
   const [verificationError, setVerificationError] = useState("");
   const [verificationLoading, setVerificationLoading] = useState(false);
+  const [codeCooldown, setCodeCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
   const verificationInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (codeCooldown <= 0) return;
+    const timer = window.setInterval(() => {
+      setCodeCooldown((remaining) => Math.max(0, remaining - 1));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [codeCooldown]);
+
+  function startCodeCooldown() {
+    setCodeCooldown(60);
+  }
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -51,6 +64,7 @@ export default function Register() {
       });
       if ("requiresRegistrationTwoFactor" in result) {
         setRequiresVerification(true);
+        startCodeCooldown();
         setTimeout(() => verificationInputRef.current?.focus(), 100);
       } else {
         queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
@@ -72,6 +86,7 @@ export default function Register() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Could not send the code.");
+      startCodeCooldown();
     } catch (e: any) {
       setVerificationError(e.message || "Could not send the verification code.");
     } finally {
@@ -94,6 +109,7 @@ export default function Register() {
         data: { username: values.username, email: values.email, password: values.password },
       });
       setRequiresVerification(true);
+      startCodeCooldown();
       setTimeout(() => verificationInputRef.current?.focus(), 100);
     } catch (e: any) {
       setSubmitError(e.message || "Could not send the verification code.");
@@ -220,8 +236,14 @@ export default function Register() {
                         maxLength={6}
                         className="h-12 flex-1 bg-secondary/40 border-border focus:border-primary/60 rounded-xl font-mono tracking-widest"
                       />
-                      <Button type="button" variant="outline" className="h-12 rounded-xl px-4" onClick={onGetCode} disabled={registerUser.isPending || verificationLoading}>
-                        {registerUser.isPending || verificationLoading ? "Sending…" : "Get Code"}
+                      <Button type="button" variant="outline" className="h-12 rounded-xl px-4" onClick={onGetCode} disabled={registerUser.isPending || verificationLoading || codeCooldown > 0}>
+                        {registerUser.isPending || verificationLoading
+                          ? "Sending…"
+                          : codeCooldown > 0
+                            ? `Wait ${codeCooldown}s`
+                            : requiresVerification
+                              ? "Resend Code"
+                              : "Get Code"}
                       </Button>
                     </div>
                     {requiresVerification && (

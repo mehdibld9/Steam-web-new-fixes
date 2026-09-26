@@ -38,6 +38,7 @@ function getClientIp(req: Parameters<typeof router.post>[1] extends (req: infer 
 }
 
 const ALLOWED_EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "yahoo.fr", "yahoo.co.uk", "hotmail.fr", "hotmail.co.uk", "live.com", "msn.com"];
+const REGISTRATION_CODE_COOLDOWN_MS = 60 * 1000;
 
 function createVerificationCode(): string {
   return String(crypto.randomInt(100000, 1000000));
@@ -105,6 +106,7 @@ router.post("/register", async (req, res) => {
       registrationIp: ip,
       codeHash,
       codeExpiresAt: Date.now() + 10 * 60 * 1000,
+      lastCodeSentAt: Date.now(),
     };
     req.session.save((saveErr: any) => {
      if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
@@ -200,6 +202,17 @@ router.post("/resend-registration-code", async (req, res) => {
     return;
   }
 
+  const lastCodeSentAt = pendingRegistration?.lastCodeSentAt ?? (req.session as any).registrationCodeSentAt;
+  const cooldownRemaining = lastCodeSentAt
+    ? REGISTRATION_CODE_COOLDOWN_MS - (Date.now() - lastCodeSentAt)
+    : 0;
+  if (cooldownRemaining > 0) {
+    const secondsRemaining = Math.ceil(cooldownRemaining / 1000);
+    res.setHeader("Retry-After", secondsRemaining);
+    res.status(429).json({ error: `Please wait ${secondsRemaining} seconds before requesting another code.` });
+    return;
+  }
+
   const verificationCode = createVerificationCode();
   const codeHash = await bcrypt.hash(verificationCode, 10);
   if (pendingRegistration) {
@@ -226,6 +239,13 @@ router.post("/resend-registration-code", async (req, res) => {
     return;
   }
 
+  const codeSentAt = Date.now();
+  if (pendingRegistration) {
+    pendingRegistration.lastCodeSentAt = codeSentAt;
+    (req.session as any).pendingRegistration = pendingRegistration;
+  } else {
+    (req.session as any).registrationCodeSentAt = codeSentAt;
+  }
   res.json({ message: "Verification code sent." });
 });
 

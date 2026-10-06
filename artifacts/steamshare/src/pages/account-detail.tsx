@@ -184,17 +184,29 @@ async function submitReport(
   reason: string,
   details: string,
 ) {
-  const res = await fetch("/api/reports", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ targetType, targetId, reason, details }),
-  });
-  if (!res.ok) {
-    const e = await res.json().catch(() => ({}));
-    throw new Error(e.error || "Failed to report");
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch("/api/reports", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ targetType, targetId, reason, details }),
+      signal: controller.signal,
+    });
+    const response = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(response.error || "Failed to report");
+    }
+    return response;
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error("The report request timed out. Please try again.");
+    }
+    throw error;
+  } finally {
+    window.clearTimeout(timeoutId);
   }
-  return res.json();
 }
 
 async function patchAccount(accountId: number, data: Record<string, unknown>) {
@@ -283,6 +295,7 @@ export default function AccountDetail() {
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [reportChecks, setReportChecks] = useState<Record<string, boolean>>({});
+  const [reportError, setReportError] = useState("");
   const [commentReportId, setCommentReportId] = useState<number | null>(null);
   const [commentReportReason, setCommentReportReason] = useState("");
   const [commentReportDetails, setCommentReportDetails] = useState("");
@@ -361,6 +374,7 @@ export default function AccountDetail() {
 
   const reportMutation = useMutation({
     mutationFn: () => {
+      setReportError("");
       const confirmedChecks = [
         "I confirmed I checked this issue before reporting.",
         ...(REPORT_CHECKS[reportReason] ?? []).filter((check) => reportChecks[check]),
@@ -377,10 +391,14 @@ export default function AccountDetail() {
       setReportReason("");
       setReportDetails("");
       setReportChecks({});
+      setReportError("");
       toast({ title: "Report submitted" });
     },
-    onError: (e: any) =>
-      toast({ title: "Error", description: e.message, variant: "destructive" }),
+    onError: (e: any) => {
+      const message = e.message || "Failed to submit report.";
+      setReportError(message);
+      toast({ title: "Report failed", description: message, variant: "destructive" });
+    },
   });
 
   const commentReportMutation = useMutation({
@@ -1796,6 +1814,7 @@ export default function AccountDetail() {
                   onChange={(e) => {
                     setReportReason(e.target.value);
                     setReportChecks({});
+                    setReportError("");
                   }}
                 >
                   <option value="">Select a reason...</option>
@@ -1847,6 +1866,11 @@ export default function AccountDetail() {
                   rows={3}
                 />
               </div>
+              {reportError && (
+                <p role="alert" className="text-sm text-red-500">
+                  {reportError}
+                </p>
+              )}
               <Button
                 className="w-full"
                 onClick={() => reportMutation.mutate()}

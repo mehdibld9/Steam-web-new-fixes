@@ -279,6 +279,7 @@ export default function AccountDetail() {
   const [editCost, setEditCost] = useState(0);
 
   const [reportOpen, setReportOpen] = useState(false);
+  const [hasReportedAccount, setHasReportedAccount] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
   const [reportChecks, setReportChecks] = useState<Record<string, boolean>>({});
@@ -372,6 +373,7 @@ export default function AccountDetail() {
     },
     onSuccess: () => {
       setReportOpen(false);
+      setHasReportedAccount(true);
       setReportReason("");
       setReportDetails("");
       setReportChecks({});
@@ -1090,12 +1092,13 @@ export default function AccountDetail() {
                     variant="outline"
                     onClick={() => {
                       if (!user) return;
+                      if (hasReportedAccount) return;
                       setReportOpen(true);
                     }}
-                    disabled={!user}
+                    disabled={!user || hasReportedAccount}
                     className="flex-1 gap-2 border-red-500/30 text-red-500 hover:bg-red-500/10 text-xs sm:text-sm"
                   >
-                    <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> Report
+                    <Flag className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> {hasReportedAccount ? "Reported" : "Report"}
                   </Button>
                 </div>
                 {likeError && (

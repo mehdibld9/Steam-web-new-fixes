@@ -1,5 +1,6 @@
 ﻿import React from "react";
 import { Layout } from "@/components/layout";
+import { Link } from "wouter";
 
 export default function FAQPage(): JSX.Element {
   return (
@@ -11,7 +12,10 @@ export default function FAQPage(): JSX.Element {
           <section>
             <h2 className="text-lg font-semibold">1. How do I get points?</h2>
             <p className="text-muted-foreground">
-              You can earn points by sharing accounts. Each valid shared account gives you <strong>5 points</strong>, and you can also earn through premium or paid account activity.
+              You can earn points by sharing accounts. Each valid shared account gives you <strong>5 points</strong>, and you can also earn through premium or paid account activity.{" "}
+              <Link href="/premium" className="gold-text underline">
+                You can get 1,000 points by buying a subscription.
+              </Link>
             </p>
           </section>
 

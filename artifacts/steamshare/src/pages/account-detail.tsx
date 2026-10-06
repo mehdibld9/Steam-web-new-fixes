@@ -24,6 +24,7 @@ import { Input } from "@/components/ui/input";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Heart,
   Coins,
@@ -130,6 +131,17 @@ const ANIMATED_COLOR_MAP: Record<string, string> = {
   aurora: "aurora-text", sunset: "sunset-text", ice: "ice-text",
   toxic: "toxic-text", rose: "rose-text", lava: "lava-text",
 };
+
+const REPORT_CHECKS: Record<string, string[]> = {
+  "Wrong username or password": [],
+  "Steam Guard / authenticator enabled": [],
+  "No games available": [
+    "I tried using the Steam PC app instead of Chrome.",
+    "I checked whether the games are hidden.",
+  ],
+  "Error when logging in": ["I tried using a VPN."],
+};
+
 function nameColorClass(nc: string | null | undefined): string | null {
   return nc ? (ANIMATED_COLOR_MAP[nc] ?? null) : null;
 }
@@ -269,6 +281,7 @@ export default function AccountDetail() {
   const [reportOpen, setReportOpen] = useState(false);
   const [reportReason, setReportReason] = useState("");
   const [reportDetails, setReportDetails] = useState("");
+  const [reportChecks, setReportChecks] = useState<Record<string, boolean>>({});
   const [commentReportId, setCommentReportId] = useState<number | null>(null);
   const [commentReportReason, setCommentReportReason] = useState("");
   const [commentReportDetails, setCommentReportDetails] = useState("");
@@ -346,11 +359,22 @@ export default function AccountDetail() {
   });
 
   const reportMutation = useMutation({
-    mutationFn: () => submitReport("account", id, reportReason, reportDetails),
+    mutationFn: () => {
+      const confirmedChecks = [
+        "I confirmed I checked this issue before reporting.",
+        ...(REPORT_CHECKS[reportReason] ?? []).filter((check) => reportChecks[check]),
+      ];
+      const details = [
+        `Checks confirmed: ${confirmedChecks.join("; ")}`,
+        reportDetails.trim() ? `Additional details: ${reportDetails.trim()}` : "",
+      ].filter(Boolean).join("\n");
+      return submitReport("account", id, reportReason, details);
+    },
     onSuccess: () => {
       setReportOpen(false);
       setReportReason("");
       setReportDetails("");
+      setReportChecks({});
       toast({ title: "Report submitted" });
     },
     onError: (e: any) =>
@@ -1766,16 +1790,48 @@ export default function AccountDetail() {
                 <select
                   className="w-full border border-border rounded-lg px-3 py-2 bg-background text-sm"
                   value={reportReason}
-                  onChange={(e) => setReportReason(e.target.value)}
+                  onChange={(e) => {
+                    setReportReason(e.target.value);
+                    setReportChecks({});
+                  }}
                 >
                   <option value="">Select a reason...</option>
-                  <option value="spam">Spam or misleading</option>
-                  <option value="fake">Fake or invalid credentials</option>
-                  <option value="inappropriate">Inappropriate content</option>
-                  <option value="scam">Potential scam</option>
-                  <option value="other">Other</option>
+                  {Object.keys(REPORT_CHECKS).map((reason) => (
+                    <option key={reason} value={reason}>{reason}</option>
+                  ))}
                 </select>
               </div>
+              {reportReason && (
+                <fieldset className="space-y-3 rounded-lg border border-border p-3">
+                  <legend className="px-1 text-sm font-medium">Did you check?</legend>
+                  <label className="flex cursor-pointer items-start gap-2 text-sm">
+                    <Checkbox
+                      checked={reportChecks["I confirmed I checked this issue before reporting."] ?? false}
+                      onCheckedChange={(checked) =>
+                        setReportChecks((current) => ({
+                          ...current,
+                          "I confirmed I checked this issue before reporting.": checked === true,
+                        }))
+                      }
+                    />
+                    <span>I confirmed I checked this issue before reporting.</span>
+                  </label>
+                  {(REPORT_CHECKS[reportReason] ?? []).map((check) => (
+                    <label key={check} className="flex cursor-pointer items-start gap-2 text-sm">
+                      <Checkbox
+                        checked={reportChecks[check] ?? false}
+                        onCheckedChange={(checked) =>
+                          setReportChecks((current) => ({
+                            ...current,
+                            [check]: checked === true,
+                          }))
+                        }
+                      />
+                      <span>{check}</span>
+                    </label>
+                  ))}
+                </fieldset>
+              )}
               <div className="space-y-1">
                 <label className="text-sm font-medium">
                   Details (optional)
@@ -1791,7 +1847,12 @@ export default function AccountDetail() {
               <Button
                 className="w-full"
                 onClick={() => reportMutation.mutate()}
-                disabled={!reportReason || reportMutation.isPending}
+                disabled={
+                  !reportReason ||
+                  !reportChecks["I confirmed I checked this issue before reporting."] ||
+                  (REPORT_CHECKS[reportReason] ?? []).some((check) => !reportChecks[check]) ||
+                  reportMutation.isPending
+                }
               >
                 {reportMutation.isPending ? "Submitting..." : "Submit Report"}
               </Button>

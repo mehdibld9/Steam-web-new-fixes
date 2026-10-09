@@ -1,15 +1,23 @@
-﻿import React from "react";
+import React, { useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 
 export default function FAQPage(): JSX.Element {
+  const [location] = useLocation();
+
+  useEffect(() => {
+    if (window.location.hash === "#how-do-i-get-points") {
+      document.getElementById("how-do-i-get-points")?.scrollIntoView();
+    }
+  }, [location]);
+
   return (
     <Layout>
       <div className="max-w-4xl mx-auto px-4 py-12">
         <div className="bg-card border border-border rounded-2xl p-6 space-y-6">
           <h1 className="text-2xl font-bold">Frequently Asked Questions</h1>
 
-          <section>
+          <section id="how-do-i-get-points">
             <h2 className="text-lg font-semibold">1. How do I get points?</h2>
             <p className="text-muted-foreground">
               You can earn points by sharing accounts. Each valid shared account gives you <strong>5 points</strong>, and you can also earn through premium or paid account activity.{" "}

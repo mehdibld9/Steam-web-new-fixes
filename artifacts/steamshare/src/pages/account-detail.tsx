@@ -805,17 +805,13 @@ export default function AccountDetail() {
                       <p className="font-bold text-sm sm:text-base mb-1">
                         View account credentials
                       </p>
-                      <p className="text-xs sm:text-sm text-muted-foreground">
-                        {user?.id === account.userId
-                          ? "View the credentials for your own listing."
-                          : account.pointsCost === 0
-                          ? "Claim this account for free to reveal the Steam login."
-                          : `Spend ${account.pointsCost} points to reveal the Steam login.`}
-                      </p>
                       {account.pointsCost > 0 && (
-                        <p className="text-[11px] text-amber-400">
-                          Paid listings bypass the like/comment unlock requirement.
-                        </p>
+                        <Link
+                          href="/faq#how-do-i-get-points"
+                          className="text-xs sm:text-sm text-yellow-400 underline underline-offset-2 hover:text-yellow-300"
+                        >
+                          How to get points
+                        </Link>
                       )}
                     </div>
                     {(() => {

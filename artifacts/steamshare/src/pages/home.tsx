@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Megaphone, Pin, ChevronRight, Plus, Users, Search } from "lucide-react";
+import { Megaphone, Pin, ChevronRight, Plus, Users, Search, CircleHelp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
 
@@ -182,6 +182,22 @@ export default function Home() {
 
         </div>
       </section>
+
+      <div className="container mx-auto px-4 pt-6">
+        <div className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-xl border border-border bg-card/70 px-4 py-3 text-center text-sm shadow-sm">
+          <CircleHelp className="h-4 w-4 shrink-0 text-primary" />
+          <span className="font-semibold text-foreground">New here?</span>
+          <span className="text-muted-foreground">
+            Earn points by sharing accounts or subscribing to Premium.
+          </span>
+          <Link
+            href="/faq#how-do-i-get-points"
+            className="font-semibold text-yellow-400 underline underline-offset-2 hover:text-yellow-300"
+          >
+            Learn how to get points
+          </Link>
+        </div>
+      </div>
 
       <div className="container mx-auto px-4 py-10 space-y-10">
 

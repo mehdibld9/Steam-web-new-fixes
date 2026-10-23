@@ -56,7 +56,7 @@ export default function Browse() {
   const params = getParams();
   const [search, setSearch] = useState(params.get("search") ?? "");
   const [selectedGame, setSelectedGame] = useState<string>(params.get("game") ?? "all");
-  const [sort, setSort] = useState<"recent" | "popular" | "free" | "points" | "vip">(
+  const [sort, setSort] = useState<"recent" | "popular" | "free" | "points" | "vip" | "games">(
     (params.get("sort") as any) ?? "recent"
   );
   const [page, setPage] = useState(getPage(params));
@@ -231,6 +231,7 @@ export default function Browse() {
                     <SelectContent>
                       <SelectItem value="recent">Most Recent</SelectItem>
                       <SelectItem value="popular">Most Popular</SelectItem>
+                      <SelectItem value="games">Most Games</SelectItem>
                       <SelectItem value="free">Free Accounts</SelectItem>
                       <SelectItem value="points">Lowest Points</SelectItem>
                       <SelectItem value="vip">VIP Only</SelectItem>

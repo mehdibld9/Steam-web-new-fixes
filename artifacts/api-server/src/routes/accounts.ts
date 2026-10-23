@@ -130,6 +130,7 @@ router.get("/", async (req, res) => {
       .orderBy(
         desc(accountsTable.isPinned),
         sort === "popular" ? desc(accountsTable.likesCount) :
+        sort === "games" ? desc(sql`cardinality(${accountsTable.games})`) :
         sort === "points" ? asc(accountsTable.pointsCost) :
         desc(accountsTable.createdAt)
       )

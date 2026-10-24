@@ -166,6 +166,11 @@ export interface AccountListResponse {
   limit: number;
 }
 
+export interface GetUserAccountsParams {
+  page?: number;
+  limit?: number;
+}
+
 export type AccountInputUnlockMethod = typeof AccountInputUnlockMethod[keyof typeof AccountInputUnlockMethod];
 
 

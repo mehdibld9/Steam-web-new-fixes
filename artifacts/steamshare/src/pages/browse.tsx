@@ -10,6 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { Search, Filter, ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Megaphone, Pin } from "lucide-react";
+import { buildPageList } from "@/lib/pagination";
 
 const LIMIT = 20;
 
@@ -26,19 +27,6 @@ function getParams() {
 function getPage(params: URLSearchParams): number {
   const value = Number(params.get("page") ?? "1");
   return Number.isFinite(value) && value >= 1 ? Math.floor(value) : 1;
-}
-
-/** Build the page-number list with ellipsis gaps. */
-function buildPageList(current: number, total: number): (number | "…")[] {
-  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
-  const pages: (number | "…")[] = [1];
-  if (current > 3) pages.push("…");
-  for (let p = Math.max(2, current - 1); p <= Math.min(total - 1, current + 1); p++) {
-    pages.push(p);
-  }
-  if (current < total - 2) pages.push("…");
-  pages.push(total);
-  return pages;
 }
 
 async function pinAccount(accountId: number, pinned: boolean) {

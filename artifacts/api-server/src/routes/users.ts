@@ -147,39 +147,55 @@ router.get("/:userId", async (req, res) => {
 
 router.get("/:userId/accounts", async (req, res) => {
   const userId = parseInt(req.params.userId, 10);
+  const requestedPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+  const requestedLimit = Number.parseInt(String(req.query.limit ?? "10"), 10);
+  const page = Number.isSafeInteger(requestedPage)
+    ? Math.max(1, requestedPage)
+    : 1;
+  const limit = Number.isFinite(requestedLimit)
+    ? Math.min(100, Math.max(1, requestedLimit))
+    : 10;
+  const offset = (page - 1) * limit;
 
-  const accounts = await db
-    .select({
-      id: accountsTable.id,
-      userId: accountsTable.userId,
-      title: accountsTable.title,
-      description: accountsTable.description,
-      games: accountsTable.games,
-      pointsCost: accountsTable.pointsCost,
-      vipOnly: accountsTable.vipOnly,
-      isAvailable: accountsTable.isAvailable,
-      likesCount: accountsTable.likesCount,
-      claimsCount: accountsTable.claimsCount,
-      viewCount: accountsTable.viewCount,
-      createdAt: accountsTable.createdAt,
-      posterUsername: sql<string>`COALESCE(${usersTable.displayName}, ${usersTable.username})`,
-      posterAvatarUrl: usersTable.avatarUrl,
-      posterPremiumTier: usersTable.premiumTier,
-      posterPremiumExpiresAt: usersTable.premiumExpiresAt,
-      posterNameColor: usersTable.nameColor,
-      posterBadgeType: usersTable.badgeType,
-      posterBadgeIconUrl: usersTable.badgeIconUrl,
-      posterBadgeIconLink: usersTable.badgeIconLink,
-    })
-    .from(accountsTable)
-    .leftJoin(usersTable, eq(accountsTable.userId, usersTable.id))
-    .where(eq(accountsTable.userId, userId))
-    .orderBy(desc(accountsTable.createdAt))
-    .limit(50);
+  const [accounts, [{ count }]] = await Promise.all([
+    db
+      .select({
+        id: accountsTable.id,
+        userId: accountsTable.userId,
+        title: accountsTable.title,
+        description: accountsTable.description,
+        games: accountsTable.games,
+        pointsCost: accountsTable.pointsCost,
+        vipOnly: accountsTable.vipOnly,
+        isAvailable: accountsTable.isAvailable,
+        likesCount: accountsTable.likesCount,
+        claimsCount: accountsTable.claimsCount,
+        viewCount: accountsTable.viewCount,
+        createdAt: accountsTable.createdAt,
+        posterUsername: sql<string>`COALESCE(${usersTable.displayName}, ${usersTable.username})`,
+        posterAvatarUrl: usersTable.avatarUrl,
+        posterPremiumTier: usersTable.premiumTier,
+        posterPremiumExpiresAt: usersTable.premiumExpiresAt,
+        posterNameColor: usersTable.nameColor,
+        posterBadgeType: usersTable.badgeType,
+        posterBadgeIconUrl: usersTable.badgeIconUrl,
+        posterBadgeIconLink: usersTable.badgeIconLink,
+      })
+      .from(accountsTable)
+      .leftJoin(usersTable, eq(accountsTable.userId, usersTable.id))
+      .where(eq(accountsTable.userId, userId))
+      .orderBy(desc(accountsTable.createdAt))
+      .limit(limit)
+      .offset(offset),
+    db
+      .select({ count: sql<number>`count(*)` })
+      .from(accountsTable)
+      .where(eq(accountsTable.userId, userId)),
+  ]);
 
   const now = new Date();
-  res.json(
-    accounts.map((a) => {
+  res.json({
+    accounts: accounts.map((a) => {
       const premiumActive =
         a.posterPremiumTier &&
         (!a.posterPremiumExpiresAt || new Date(a.posterPremiumExpiresAt) > now);
@@ -194,7 +210,10 @@ router.get("/:userId/accounts", async (req, res) => {
         posterBadgeIconLink: premiumActive ? a.posterBadgeIconLink : null,
       };
     }),
-  );
+    total: Number(count),
+    page,
+    limit,
+  });
 });
 
 export default router;

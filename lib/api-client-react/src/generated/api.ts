@@ -40,6 +40,7 @@ import type {
   ForgotPasswordResult,
   GameCount,
   GetLeaderboardParams,
+  GetUserAccountsParams,
   Giveaway,
   GiveawayEntry,
   GiveawayInput,
@@ -2001,20 +2002,26 @@ export function useGetUser<TData = Awaited<ReturnType<typeof getUser>>, TError =
 
 
 
-export const getGetUserAccountsUrl = (userId: number,) => {
+export const getGetUserAccountsUrl = (userId: number, params?: GetUserAccountsParams,) => {
+  const normalizedParams = new URLSearchParams();
 
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : String(value))
+    }
+  });
 
+  const stringifiedParams = normalizedParams.toString();
 
-
-  return `/api/users/${userId}/accounts`
+  return stringifiedParams.length > 0 ? `/api/users/${userId}/accounts?${stringifiedParams}` : `/api/users/${userId}/accounts`
 }
 
 /**
- * @summary Get all accounts posted by a user
+ * @summary Get a page of accounts posted by a user
  */
-export const getUserAccounts = async (userId: number, options?: RequestInit): Promise<Account[]> => {
+export const getUserAccounts = async (userId: number, params?: GetUserAccountsParams, options?: RequestInit): Promise<AccountListResponse> => {
 
-  return customFetch<Account[]>(getGetUserAccountsUrl(userId),
+  return customFetch<AccountListResponse>(getGetUserAccountsUrl(userId, params),
   {
     ...options,
     method: 'GET'
@@ -2027,23 +2034,23 @@ export const getUserAccounts = async (userId: number, options?: RequestInit): Pr
 
 
 
-export const getGetUserAccountsQueryKey = (userId: number,) => {
+export const getGetUserAccountsQueryKey = (userId: number, params?: GetUserAccountsParams,) => {
     return [
-    `/api/users/${userId}/accounts`
+    `/api/users/${userId}/accounts`, ...(params ? [params] : [])
     ] as const;
     }
 
 
-export const getGetUserAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getUserAccounts>>, TError = ErrorType<unknown>>(userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+export const getGetUserAccountsQueryOptions = <TData = Awaited<ReturnType<typeof getUserAccounts>>, TError = ErrorType<unknown>>(userId: number, params?: GetUserAccountsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 ) => {
 
 const {query: queryOptions, request: requestOptions} = options ?? {};
 
-  const queryKey =  queryOptions?.queryKey ?? getGetUserAccountsQueryKey(userId);
+  const queryKey =  queryOptions?.queryKey ?? getGetUserAccountsQueryKey(userId, params);
 
 
 
-    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserAccounts>>> = ({ signal }) => getUserAccounts(userId, { signal, ...requestOptions });
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getUserAccounts>>> = ({ signal }) => getUserAccounts(userId, params, { signal, ...requestOptions });
 
 
 
@@ -2057,15 +2064,15 @@ export type GetUserAccountsQueryError = ErrorType<unknown>
 
 
 /**
- * @summary Get all accounts posted by a user
+ * @summary Get a page of accounts posted by a user
  */
 
 export function useGetUserAccounts<TData = Awaited<ReturnType<typeof getUserAccounts>>, TError = ErrorType<unknown>>(
- userId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+ userId: number, params?: GetUserAccountsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getUserAccounts>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
 
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
-  const queryOptions = getGetUserAccountsQueryOptions(userId,options)
+  const queryOptions = getGetUserAccountsQueryOptions(userId,params,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 
@@ -3465,8 +3472,6 @@ export function useListBadges<TData = Awaited<ReturnType<typeof listBadges>>, TE
 
   return withQueryKey(query, queryOptions.queryKey);
 }
-
-
 
 
 

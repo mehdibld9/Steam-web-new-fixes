@@ -24,10 +24,12 @@ import {
   Coins,
   Settings,
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { UserBadge } from "@/components/user-badge";
 import { format } from "date-fns";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
 import {
   Dialog,
@@ -38,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { getLevelColor } from "@/lib/level-colors";
+import { buildPageList } from "@/lib/pagination";
 
 async function banUser(
   userId: number,
@@ -78,9 +81,13 @@ const BAN_DURATIONS = [
   { label: "Permanent", hours: null },
 ];
 
+const ACCOUNTS_PER_PAGE = 10;
+
 export default function Profile() {
   const params = useParams();
   const id = parseInt(params.id || "0");
+  const [accountsPage, setAccountsPage] = useState(1);
+  const [accountsPageInput, setAccountsPageInput] = useState("");
   const { data: user, isLoading: userLoading } = useGetUser(id, {
     query: {
       queryKey: getGetUserQueryKey(id),
@@ -88,16 +95,21 @@ export default function Profile() {
       retry: false,
     },
   });
-  const { data: accounts, isLoading: accountsLoading } = useGetUserAccounts(
+  const accountsParams = { page: accountsPage, limit: ACCOUNTS_PER_PAGE };
+  const { data: accountsData, isLoading: accountsLoading } = useGetUserAccounts(
     id,
+    accountsParams,
     {
       query: {
-        queryKey: getGetUserAccountsQueryKey(id),
+        queryKey: getGetUserAccountsQueryKey(id, accountsParams),
         enabled: !!id && !isNaN(id),
         retry: false,
       },
     },
   );
+  const accounts = accountsData?.accounts ?? [];
+  const totalPages = Math.max(1, Math.ceil((accountsData?.total ?? 0) / ACCOUNTS_PER_PAGE));
+  const pageList = buildPageList(accountsPage, totalPages);
   const { data: me } = useGetMe();
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -105,6 +117,18 @@ export default function Profile() {
   const [banOpen, setBanOpen] = useState(false);
   const [banDuration, setBanDuration] = useState<number | null>(24);
   const [banReason, setBanReason] = useState("");
+
+  useEffect(() => {
+    setAccountsPage(1);
+    setAccountsPageInput("");
+  }, [id]);
+
+  function goToPage(target: number) {
+    const nextPage = Math.min(Math.max(1, target), totalPages);
+    if (nextPage === accountsPage) return;
+    setAccountsPage(nextPage);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   const xpProgress = user ? user.xp % 100 : 0;
   const canManage =
@@ -469,6 +493,77 @@ export default function Profile() {
                 <AccountCard key={account.id} account={account} />
               ))}
             </div>
+          )}
+          {!accountsLoading && totalPages > 1 && (
+            <nav
+              className="flex items-center justify-center gap-1 pt-6 flex-wrap"
+              aria-label="Upload history pagination"
+            >
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => goToPage(accountsPage - 1)}
+                disabled={accountsPage === 1}
+                aria-label="Previous page"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              {pageList.map((page, index) =>
+                page === "…" ? (
+                  <span key={`ellipsis-${index}`} className="px-1 text-muted-foreground select-none">
+                    …
+                  </span>
+                ) : (
+                  <Button
+                    key={page}
+                    variant={page === accountsPage ? "default" : "outline"}
+                    size="icon"
+                    className="h-9 w-9"
+                    onClick={() => goToPage(page)}
+                    aria-label={`Page ${page}`}
+                    aria-current={page === accountsPage ? "page" : undefined}
+                  >
+                    {page}
+                  </Button>
+                ),
+              )}
+              <form
+                className="ml-2 flex items-center gap-1"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const targetPage = Number(accountsPageInput);
+                  if (Number.isInteger(targetPage) && targetPage >= 1) {
+                    goToPage(targetPage);
+                    setAccountsPageInput("");
+                  }
+                }}
+              >
+                <Input
+                  type="number"
+                  min={1}
+                  max={totalPages}
+                  value={accountsPageInput}
+                  onChange={(event) => setAccountsPageInput(event.target.value)}
+                  className="h-9 w-16 px-2 text-center"
+                  aria-label="Go to page"
+                  placeholder="Page"
+                />
+                <Button type="submit" size="sm" variant="outline" className="h-9 px-2">
+                  Go
+                </Button>
+              </form>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-9 w-9"
+                onClick={() => goToPage(accountsPage + 1)}
+                disabled={accountsPage === totalPages}
+                aria-label="Next page"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </nav>
           )}
         </div>
       </div>

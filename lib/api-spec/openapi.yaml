@@ -656,22 +656,30 @@ paths:
     get:
       operationId: getUserAccounts
       tags: [users]
-      summary: Get all accounts posted by a user
+      summary: Get a page of accounts posted by a user
       parameters:
         - name: userId
           in: path
           required: true
           schema:
             type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
       responses:
         "200":
-          description: Accounts
+          description: Paginated accounts
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/Account"
+                $ref: "#/components/schemas/AccountListResponse"
 
   # Ad Links
   /ad-links:

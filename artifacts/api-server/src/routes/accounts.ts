@@ -10,6 +10,10 @@ import { getSetting } from "../lib/settings";
 
 const router = express.Router();
 
+function hasSocialLink(description: string): boolean {
+  return /(?:^|[^a-z0-9@_-])(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:t\.me|telegram\.me|telegram\.dog|discord\.gg|discord(?:app)?\.com)(?::\d+)?(?:[/?#\s]|$)/i.test(description);
+}
+
 function addXp(userId: number, amount: number) {
   return db
     .update(usersTable)
@@ -211,11 +215,14 @@ router.post("/", requireAuth, async (req, res) => {
 
   const userId = req.session.userId!;
   const { title, description, games, pointsCost, steamUsername, steamPassword, unlockMethod } = parsed.data as typeof parsed.data & { unlockMethod?: string };
-  const normalizedPointsCost = Math.max(0, Math.min(5, Math.floor(Number(pointsCost))));
-  if (Number(pointsCost) !== normalizedPointsCost) {
+  const requestedPointsCost = Math.max(0, Math.min(5, Math.floor(Number(pointsCost))));
+  if (Number(pointsCost) !== requestedPointsCost) {
     res.status(400).json({ error: "Points cost must be between 0 and 5." });
     return;
   }
+  const normalizedPointsCost = hasSocialLink(description ?? "")
+    ? 0
+    : requestedPointsCost;
   const isVipUnlock = unlockMethod === "vip";
   const safeUnlockMethod = ["login", "like", "comment"].includes(unlockMethod ?? "") ? (unlockMethod as "login" | "like" | "comment") : "login";
 

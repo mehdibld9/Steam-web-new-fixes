@@ -28,6 +28,10 @@ const formSchema = z.object({
   customButtonUrl: z.string().max(500).optional(),
 });
 
+function hasSocialLink(description: string): boolean {
+  return /(?:^|[^a-z0-9@_-])(?:https?:\/\/)?(?:[a-z0-9-]+\.)*(?:t\.me|telegram\.me|telegram\.dog|discord\.gg|discord(?:app)?\.com)(?::\d+)?(?:[/?#\s]|$)/i.test(description);
+}
+
 type VerifyStatus = "idle" | "checking" | "valid" | "invalid" | "2fa" | "rate_limited" | "error";
 
 export default function Submit() {
@@ -63,6 +67,8 @@ export default function Submit() {
   // Watch fields — must be declared before effects that depend on them
   const watchUsername = form.watch("steamUsername");
   const watchPassword = form.watch("steamPassword");
+  const watchDescription = form.watch("description");
+  const containsSocialLink = hasSocialLink(watchDescription);
 
   // Tick elapsed timer while checking
   useEffect(() => {
@@ -162,7 +168,7 @@ export default function Submit() {
           title: values.title,
           description: values.description,
           games,
-          pointsCost: values.pointsCost,
+          pointsCost: hasSocialLink(values.description) ? 0 : values.pointsCost,
           steamUsername: values.steamUsername,
           steamPassword: values.steamPassword,
           unlockMethod: values.unlockMethod,
@@ -320,14 +326,19 @@ export default function Submit() {
                         type="number"
                         min={0}
                         max={5}
-                        value={field.value}
+                        value={containsSocialLink ? 0 : field.value}
+                        disabled={containsSocialLink}
                         onChange={(e) => {
                           const next = Number(e.target.value || 0);
                           field.onChange(Math.min(5, Math.max(0, Number.isFinite(next) ? next : 0)));
                         }}
                       />
                     </FormControl>
-                    <FormDescription>Set to 0 to offer the account for free. Paid listings bypass like/comment unlock gates and the price cap is 5 points.</FormDescription>
+                    <FormDescription>
+                      {containsSocialLink
+                        ? "Telegram or Discord links require this listing to be free. The links will remain in your description."
+                        : "Set to 0 to offer the account for free. Paid listings bypass like/comment unlock gates and the price cap is 5 points."}
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )} />

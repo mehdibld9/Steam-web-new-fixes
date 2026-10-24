@@ -317,10 +317,12 @@ function RedeemCodeBox({ me, status, onSuccess }: { me: any; status: any; onSucc
   const [code, setCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
 
   const doRedeem = async () => {
     if (!code.trim()) return;
     setLoading(true);
+    setSuccessMessage("");
     try {
       const res = await fetch("/api/premium/redeem", {
         method: "POST",
@@ -330,7 +332,9 @@ function RedeemCodeBox({ me, status, onSuccess }: { me: any; status: any; onSucc
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || "Failed to redeem");
-      toast({ title: "🎉 Code redeemed!", description: data.message });
+      const message = data.message || "Your subscription has been activated successfully.";
+      setSuccessMessage(message);
+      toast({ title: "🎉 Code redeemed!", description: message });
       setCode("");
       onSuccess();
     } catch (e: any) {
@@ -383,18 +387,32 @@ function RedeemCodeBox({ me, status, onSuccess }: { me: any; status: any; onSucc
           </div>
         </div>
         {me ? (
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter code (e.g. XXXX-XXXX-XXXX)"
-              value={code}
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              className="font-mono tracking-widest flex-1"
-              onKeyDown={(e) => e.key === "Enter" && handleRedeem()}
-            />
-            <Button onClick={handleRedeem} disabled={loading || !code.trim()} className="shrink-0">
-              {loading ? "Redeeming..." : "Redeem"}
-            </Button>
-          </div>
+          <>
+            {successMessage && (
+              <div
+                role="status"
+                className="flex items-start gap-2 rounded-lg border border-green-500/30 bg-green-500/10 px-3 py-2 text-sm text-green-400"
+              >
+                <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{successMessage}</span>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter code (e.g. XXXX-XXXX-XXXX)"
+                value={code}
+                onChange={(e) => {
+                  setCode(e.target.value.toUpperCase());
+                  setSuccessMessage("");
+                }}
+                className="font-mono tracking-widest flex-1"
+                onKeyDown={(e) => e.key === "Enter" && handleRedeem()}
+              />
+              <Button onClick={handleRedeem} disabled={loading || !code.trim()} className="shrink-0">
+                {loading ? "Redeeming..." : "Redeem"}
+              </Button>
+            </div>
+          </>
         ) : (
           <Link href="/login">
             <Button variant="outline" className="w-full">Log in to redeem a code</Button>

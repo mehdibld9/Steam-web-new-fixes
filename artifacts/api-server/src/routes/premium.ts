@@ -17,6 +17,19 @@ function isActivePremium(user: any): boolean {
   return new Date(user.premiumExpiresAt) > new Date();
 }
 
+function getProPreferenceReset(user: any, tier: string) {
+  if (tier === "pro") return {};
+
+  return {
+    ...(PRO_ONLY_COLORS.includes(user.nameColor) ? { nameColor: null } : {}),
+    ...(user.badgeType && !["gold", "star"].includes(user.badgeType)
+      ? { badgeType: null }
+      : {}),
+    badgeIconUrl: null,
+    badgeIconLink: null,
+  };
+}
+
 // GET /premium/pricing — public
 router.get("/pricing", async (_req, res) => {
   const settings = await getAllXpSettings();
@@ -100,6 +113,7 @@ router.post("/buy-points", requireAuth, async (req, res) => {
     points: user.points - price,
     premiumTier: "premium",
     premiumExpiresAt: expiresAt,
+    ...getProPreferenceReset(user, "premium"),
   }).where(eq(usersTable.id, userId));
 
   res.json({ message: "Premium activated!", expiresAt });
@@ -109,10 +123,22 @@ router.post("/buy-points", requireAuth, async (req, res) => {
 router.post("/grant", requireAdmin, async (req, res) => {
   const { userId, tier, days } = req.body as { userId: number; tier: "premium" | "pro"; days?: number };
   if (!userId || !tier) { res.status(400).json({ error: "userId and tier required" }); return; }
+  const [user] = await db
+    .select({
+      nameColor: usersTable.nameColor,
+      badgeType: usersTable.badgeType,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
   const duration = (days ?? 30) * 24 * 60 * 60 * 1000;
   const expiresAt = new Date(Date.now() + duration);
 
-  await db.update(usersTable).set({ premiumTier: tier, premiumExpiresAt: expiresAt })
+  await db.update(usersTable).set({
+    premiumTier: tier,
+    premiumExpiresAt: expiresAt,
+    ...getProPreferenceReset(user ?? {}, tier),
+  })
     .where(eq(usersTable.id, userId));
   res.json({ message: `Granted ${tier} to user ${userId}`, expiresAt });
 });
@@ -291,6 +317,7 @@ router.post("/redeem", requireAuth, async (req, res) => {
   await db.update(usersTable).set({
     premiumTier: newTier,
     premiumExpiresAt: expiresAt,
+    ...getProPreferenceReset(user, newTier),
     ...(pointsReward > 0 ? { points: sql`${usersTable.points} + ${pointsReward}` } : {}),
   }).where(eq(usersTable.id, userId));
 

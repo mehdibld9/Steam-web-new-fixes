@@ -60,8 +60,7 @@ export default function Browse() {
     (params.get("sort") as any) ?? "recent"
   );
   const [page, setPage] = useState(getPage(params));
-  // Skip the first render so filter effects don't wipe the page from the URL on back-navigation.
-  const mounted = useRef(false);
+  const previousFilters = useRef({ search, selectedGame, sort });
 
   const { data: gamesData, isLoading: gamesLoading } = useListGames();
   const { data: accountsData, isLoading: accountsLoading } = useListAccounts({
@@ -112,21 +111,18 @@ export default function Browse() {
   }
 
   // When filters change (not page), replace history so page resets cleanly.
-  // Skip the very first run so back-navigation preserves the page from the URL.
   useEffect(() => {
-    if (!mounted.current) { mounted.current = true; return; }
+    const previous = previousFilters.current;
+    previousFilters.current = { search, selectedGame, sort };
+    if (
+      previous.search === search &&
+      previous.selectedGame === selectedGame &&
+      previous.sort === sort
+    ) return;
     setPage(1);
     window.history.replaceState(null, "", buildQS(1));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedGame, sort]);
-
-  // When search changes, reset to page 1 and update URL.
-  useEffect(() => {
-    if (!mounted.current) return;
-    setPage(1);
-    window.history.replaceState(null, "", buildQS(1));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search]);
+  }, [selectedGame, sort, search]);
 
   function goToPage(p: number) {
     const clamped = Math.min(Math.max(1, p), totalPages);
@@ -143,9 +139,17 @@ export default function Browse() {
   useEffect(() => {
     function onPop() {
       const p = getParams();
-      setSearch(p.get("search") ?? "");
-      setSelectedGame(p.get("game") ?? "all");
-      setSort((p.get("sort") as any) ?? "recent");
+      const nextSearch = p.get("search") ?? "";
+      const nextGame = p.get("game") ?? "all";
+      const nextSort = (p.get("sort") as typeof sort) ?? "recent";
+      previousFilters.current = {
+        search: nextSearch,
+        selectedGame: nextGame,
+        sort: nextSort,
+      };
+      setSearch(nextSearch);
+      setSelectedGame(nextGame);
+      setSort(nextSort);
       setPage(getPage(p));
     }
     window.addEventListener("popstate", onPop);

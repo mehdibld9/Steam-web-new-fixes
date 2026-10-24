@@ -4,6 +4,7 @@ import { AdBanner } from "@/components/ad-banner";
 import { useListAccounts, useListGames, useGetMe, getListAccountsQueryKey } from "@workspace/api-client-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PageJump } from "@/components/page-jump";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useState, useEffect, useRef } from "react";
@@ -329,7 +330,7 @@ export default function Browse() {
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9"
+                      className="h-8 w-8"
                       onClick={() => goToPage(page - 1)}
                       disabled={page === 1}
                       aria-label="Previous page"
@@ -347,7 +348,7 @@ export default function Browse() {
                           key={p}
                           variant={p === page ? "default" : "outline"}
                           size="icon"
-                          className="h-9 w-9"
+                          className="h-8 w-8"
                           onClick={() => goToPage(p)}
                           aria-label={`Page ${p}`}
                           aria-current={p === page ? "page" : undefined}
@@ -357,36 +358,21 @@ export default function Browse() {
                       )
                     )}
 
-                    <form
-                      className="ml-2 flex items-center gap-1"
-                      onSubmit={(event) => {
-                        event.preventDefault();
-                        const targetPage = Number(pageInput);
-                        if (Number.isInteger(targetPage) && targetPage >= 1) {
-                          goToPage(targetPage);
-                          setPageInput("");
-                        }
+                    <PageJump
+                      value={pageInput}
+                      maxPage={totalPages}
+                      ariaLabel="Go to page"
+                      onChange={setPageInput}
+                      onGo={(targetPage) => {
+                        goToPage(targetPage);
+                        setPageInput("");
                       }}
-                    >
-                      <Input
-                        type="number"
-                        min={1}
-                        max={totalPages}
-                        value={pageInput}
-                        onChange={(event) => setPageInput(event.target.value)}
-                        className="h-9 w-16 px-2 text-center"
-                        aria-label="Go to page"
-                        placeholder="Page"
-                      />
-                      <Button type="submit" size="sm" variant="outline" className="h-9 px-2">
-                        Go
-                      </Button>
-                    </form>
+                    />
 
                     <Button
                       variant="outline"
                       size="icon"
-                      className="h-9 w-9"
+                      className="h-8 w-8"
                       onClick={() => goToPage(page + 1)}
                       disabled={page === totalPages}
                       aria-label="Next page"

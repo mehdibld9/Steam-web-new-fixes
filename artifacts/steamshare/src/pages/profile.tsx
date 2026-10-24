@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { AccountCard } from "@/components/account-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageJump } from "@/components/page-jump";
 import {
   CalendarDays,
   Heart,
@@ -502,7 +503,7 @@ export default function Profile() {
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9"
+                className="h-8 w-8"
                 onClick={() => goToPage(accountsPage - 1)}
                 disabled={accountsPage === 1}
                 aria-label="Previous page"
@@ -519,7 +520,7 @@ export default function Profile() {
                     key={page}
                     variant={page === accountsPage ? "default" : "outline"}
                     size="icon"
-                    className="h-9 w-9"
+                    className="h-8 w-8"
                     onClick={() => goToPage(page)}
                     aria-label={`Page ${page}`}
                     aria-current={page === accountsPage ? "page" : undefined}
@@ -528,35 +529,20 @@ export default function Profile() {
                   </Button>
                 ),
               )}
-              <form
-                className="ml-2 flex items-center gap-1"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  const targetPage = Number(accountsPageInput);
-                  if (Number.isInteger(targetPage) && targetPage >= 1) {
-                    goToPage(targetPage);
-                    setAccountsPageInput("");
-                  }
+              <PageJump
+                value={accountsPageInput}
+                maxPage={totalPages}
+                ariaLabel="Go to page"
+                onChange={setAccountsPageInput}
+                onGo={(targetPage) => {
+                  goToPage(targetPage);
+                  setAccountsPageInput("");
                 }}
-              >
-                <Input
-                  type="number"
-                  min={1}
-                  max={totalPages}
-                  value={accountsPageInput}
-                  onChange={(event) => setAccountsPageInput(event.target.value)}
-                  className="h-9 w-16 px-2 text-center"
-                  aria-label="Go to page"
-                  placeholder="Page"
-                />
-                <Button type="submit" size="sm" variant="outline" className="h-9 px-2">
-                  Go
-                </Button>
-              </form>
+              />
               <Button
                 variant="outline"
                 size="icon"
-                className="h-9 w-9"
+                className="h-8 w-8"
                 onClick={() => goToPage(accountsPage + 1)}
                 disabled={accountsPage === totalPages}
                 aria-label="Next page"

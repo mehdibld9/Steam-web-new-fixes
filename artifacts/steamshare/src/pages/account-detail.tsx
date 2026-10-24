@@ -16,6 +16,7 @@ import {
 } from "@workspace/api-client-react";
 import { useParams, Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
+import { PageJump } from "@/components/page-jump";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,6 +36,8 @@ import {
   CheckCheck,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   Flag,
   Edit2,
   Check,
@@ -1618,6 +1621,16 @@ export default function AccountDetail() {
                   className="flex items-center justify-center gap-1 pt-6 flex-wrap"
                   aria-label="Comments pagination"
                 >
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => setCommentsPage((current) => Math.max(1, current - 1))}
+                    disabled={commentsPage === 1}
+                    aria-label="Previous comments page"
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                  </Button>
                   {commentsPageList.map((page, index) =>
                     page === "…" ? (
                       <span key={`comments-ellipsis-${index}`} className="px-1 text-muted-foreground select-none">
@@ -1637,31 +1650,30 @@ export default function AccountDetail() {
                       </Button>
                     ),
                   )}
-                  <form
-                    className="ml-2 flex items-center gap-1"
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      const targetPage = Number(commentsPageInput);
-                      if (Number.isInteger(targetPage) && targetPage >= 1) {
-                        setCommentsPage(Math.min(targetPage, commentsTotalPages));
-                        setCommentsPageInput("");
-                      }
+                  <PageJump
+                    value={commentsPageInput}
+                    maxPage={commentsTotalPages}
+                    ariaLabel="Go to comments page"
+                    onChange={setCommentsPageInput}
+                    onGo={(targetPage) => {
+                      setCommentsPage(Math.min(targetPage, commentsTotalPages));
+                      setCommentsPageInput("");
                     }}
+                  />
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() =>
+                      setCommentsPage((current) =>
+                        Math.min(commentsTotalPages, current + 1),
+                      )
+                    }
+                    disabled={commentsPage === commentsTotalPages}
+                    aria-label="Next comments page"
                   >
-                    <Input
-                      type="number"
-                      min={1}
-                      max={commentsTotalPages}
-                      value={commentsPageInput}
-                      onChange={(event) => setCommentsPageInput(event.target.value)}
-                      className="h-8 w-16 px-2 text-center"
-                      aria-label="Go to comments page"
-                      placeholder="Page"
-                    />
-                    <Button type="submit" size="sm" variant="outline" className="h-8 px-2">
-                      Go
-                    </Button>
-                  </form>
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </nav>
               )}
             </div>

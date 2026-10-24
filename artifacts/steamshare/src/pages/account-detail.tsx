@@ -142,6 +142,18 @@ const REPORT_CHECKS: Record<string, string[]> = {
   "Error when logging in": ["I tried using a VPN."],
 };
 
+function buildCommentsPageList(current: number, total: number): (number | "…")[] {
+  if (total <= 7) return Array.from({ length: total }, (_, index) => index + 1);
+  const pages: (number | "…")[] = [1];
+  if (current > 3) pages.push("…");
+  for (let page = Math.max(2, current - 1); page <= Math.min(total - 1, current + 1); page++) {
+    pages.push(page);
+  }
+  if (current < total - 2) pages.push("…");
+  pages.push(total);
+  return pages;
+}
+
 function nameColorClass(nc: string | null | undefined): string | null {
   return nc ? (ANIMATED_COLOR_MAP[nc] ?? null) : null;
 }
@@ -260,6 +272,8 @@ export default function AccountDetail() {
   const comments = commentsData?.comments ?? [];
   const commentsTotal = commentsData?.total ?? 0;
   const commentsTotalPages = Math.max(1, Math.ceil(commentsTotal / 5));
+  const commentsPageList = buildCommentsPageList(commentsPage, commentsTotalPages);
+  const [commentsPageInput, setCommentsPageInput] = useState("");
 
   const queryClient = useQueryClient();
   const { toast } = useToast();
@@ -1604,19 +1618,50 @@ export default function AccountDetail() {
                   className="flex items-center justify-center gap-1 pt-6 flex-wrap"
                   aria-label="Comments pagination"
                 >
-                  {Array.from({ length: commentsTotalPages }, (_, index) => index + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant={page === commentsPage ? "default" : "outline"}
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => setCommentsPage(page)}
-                      aria-label={`Comments page ${page}`}
-                      aria-current={page === commentsPage ? "page" : undefined}
-                    >
-                      {page}
+                  {commentsPageList.map((page, index) =>
+                    page === "…" ? (
+                      <span key={`comments-ellipsis-${index}`} className="px-1 text-muted-foreground select-none">
+                        …
+                      </span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={page === commentsPage ? "default" : "outline"}
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => setCommentsPage(page)}
+                        aria-label={`Comments page ${page}`}
+                        aria-current={page === commentsPage ? "page" : undefined}
+                      >
+                        {page}
+                      </Button>
+                    ),
+                  )}
+                  <form
+                    className="ml-2 flex items-center gap-1"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      const targetPage = Number(commentsPageInput);
+                      if (Number.isInteger(targetPage) && targetPage >= 1) {
+                        setCommentsPage(Math.min(targetPage, commentsTotalPages));
+                        setCommentsPageInput("");
+                      }
+                    }}
+                  >
+                    <Input
+                      type="number"
+                      min={1}
+                      max={commentsTotalPages}
+                      value={commentsPageInput}
+                      onChange={(event) => setCommentsPageInput(event.target.value)}
+                      className="h-8 w-16 px-2 text-center"
+                      aria-label="Go to comments page"
+                      placeholder="Page"
+                    />
+                    <Button type="submit" size="sm" variant="outline" className="h-8 px-2">
+                      Go
                     </Button>
-                  ))}
+                  </form>
                 </nav>
               )}
             </div>

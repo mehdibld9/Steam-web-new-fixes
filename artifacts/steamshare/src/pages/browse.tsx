@@ -60,6 +60,7 @@ export default function Browse() {
     (params.get("sort") as any) ?? "recent"
   );
   const [page, setPage] = useState(getPage(params));
+  const [pageInput, setPageInput] = useState("");
   const previousFilters = useRef({ search, selectedGame, sort });
 
   const { data: gamesData, isLoading: gamesLoading } = useListGames();
@@ -367,6 +368,32 @@ export default function Browse() {
                         </Button>
                       )
                     )}
+
+                    <form
+                      className="ml-2 flex items-center gap-1"
+                      onSubmit={(event) => {
+                        event.preventDefault();
+                        const targetPage = Number(pageInput);
+                        if (Number.isInteger(targetPage) && targetPage >= 1) {
+                          goToPage(targetPage);
+                          setPageInput("");
+                        }
+                      }}
+                    >
+                      <Input
+                        type="number"
+                        min={1}
+                        max={totalPages}
+                        value={pageInput}
+                        onChange={(event) => setPageInput(event.target.value)}
+                        className="h-9 w-16 px-2 text-center"
+                        aria-label="Go to page"
+                        placeholder="Page"
+                      />
+                      <Button type="submit" size="sm" variant="outline" className="h-9 px-2">
+                        Go
+                      </Button>
+                    </form>
 
                     <Button
                       variant="outline"

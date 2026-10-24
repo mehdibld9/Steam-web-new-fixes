@@ -358,17 +358,6 @@ export default function Browse() {
                       )
                     )}
 
-                    <PageJump
-                      value={pageInput}
-                      maxPage={totalPages}
-                      ariaLabel="Go to page"
-                      onChange={setPageInput}
-                      onGo={(targetPage) => {
-                        goToPage(targetPage);
-                        setPageInput("");
-                      }}
-                    />
-
                     <Button
                       variant="outline"
                       size="icon"
@@ -379,6 +368,17 @@ export default function Browse() {
                     >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
+
+                    <PageJump
+                      value={pageInput}
+                      maxPage={totalPages}
+                      ariaLabel="Go to page"
+                      onChange={setPageInput}
+                      onGo={(targetPage) => {
+                        goToPage(targetPage);
+                        setPageInput("");
+                      }}
+                    />
                   </nav>
                 )}
               </>

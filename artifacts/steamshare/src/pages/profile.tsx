@@ -529,16 +529,6 @@ export default function Profile() {
                   </Button>
                 ),
               )}
-              <PageJump
-                value={accountsPageInput}
-                maxPage={totalPages}
-                ariaLabel="Go to page"
-                onChange={setAccountsPageInput}
-                onGo={(targetPage) => {
-                  goToPage(targetPage);
-                  setAccountsPageInput("");
-                }}
-              />
               <Button
                 variant="outline"
                 size="icon"
@@ -549,6 +539,16 @@ export default function Profile() {
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+              <PageJump
+                value={accountsPageInput}
+                maxPage={totalPages}
+                ariaLabel="Go to page"
+                onChange={setAccountsPageInput}
+                onGo={(targetPage) => {
+                  goToPage(targetPage);
+                  setAccountsPageInput("");
+                }}
+              />
             </nav>
           )}
         </div>

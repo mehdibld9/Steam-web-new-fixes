@@ -1650,16 +1650,6 @@ export default function AccountDetail() {
                       </Button>
                     ),
                   )}
-                  <PageJump
-                    value={commentsPageInput}
-                    maxPage={commentsTotalPages}
-                    ariaLabel="Go to comments page"
-                    onChange={setCommentsPageInput}
-                    onGo={(targetPage) => {
-                      setCommentsPage(Math.min(targetPage, commentsTotalPages));
-                      setCommentsPageInput("");
-                    }}
-                  />
                   <Button
                     variant="outline"
                     size="icon"
@@ -1674,6 +1664,16 @@ export default function AccountDetail() {
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>
+                  <PageJump
+                    value={commentsPageInput}
+                    maxPage={commentsTotalPages}
+                    ariaLabel="Go to comments page"
+                    onChange={setCommentsPageInput}
+                    onGo={(targetPage) => {
+                      setCommentsPage(Math.min(targetPage, commentsTotalPages));
+                      setCommentsPageInput("");
+                    }}
+                  />
                 </nav>
               )}
             </div>

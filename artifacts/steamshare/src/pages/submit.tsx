@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useCreateAccount, useGetMe, useVerifyCredentials } from "@workspace/api-client-react";
-import { useLocation } from "wouter";
+import { Link, useLocation } from "wouter";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -18,6 +18,9 @@ import { MarkdownEditor } from "@/components/markdown-editor";
 const formSchema = z.object({
   title: z.string().min(3).max(100),
   description: z.string().max(1000),
+  agreeTerms: z.boolean().refine((value) => value, {
+    message: "You must agree to the terms and rules before sharing an account.",
+  }),
   gamesList: z.string().min(1, "At least one game is required"),
   pointsCost: z.coerce.number().min(0).max(5),
   steamUsername: z.string().min(1, "Steam username is required"),
@@ -53,6 +56,7 @@ export default function Submit() {
     defaultValues: {
       title: "",
       description: "",
+      agreeTerms: false,
       gamesList: "",
       pointsCost: 0,
       steamUsername: "",
@@ -283,6 +287,27 @@ export default function Submit() {
                       rows={4}
                     />
                     <FormMessage />
+                  </FormItem>
+                )} />
+
+                <FormField control={form.control} name="agreeTerms" render={({ field }) => (
+                  <FormItem className="flex items-start gap-3 space-y-0">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                        className="mt-0.5"
+                      />
+                    </FormControl>
+                    <div>
+                      <FormLabel className="font-normal leading-relaxed">
+                        I agree to the{" "}
+                        <Link href="/terms" className="text-primary hover:underline">
+                          Terms and Rules
+                        </Link>
+                      </FormLabel>
+                      <FormMessage className="mt-1" />
+                    </div>
                   </FormItem>
                 )} />
 

@@ -22,9 +22,8 @@ export default function TermsPage(): JSX.Element {
             <h2 className="text-lg font-semibold">2. Account Sharing &amp; Accuracy</h2>
             <p className="text-muted-foreground">When submitting shared Steam accounts or libraries, you agree to provide authentic, valid information without deceptive credentials.</p>
             <ul className="list-disc ml-5 space-y-1 text-muted-foreground">
+              <li>Links to external websites are not allowed. Only Discord and Telegram links may be shared, and any post containing one must be free.</li>
               <li>Do not submit deliberately non-working accounts to farm points.</li>
-              <li>Accounts with Steam Guard or 2FA enabled must be reported immediately.</li>
-              <li>Repeatedly uploading fake or broken accounts will result in an immediate account ban and point forfeiture.</li>
             </ul>
           </section>
 

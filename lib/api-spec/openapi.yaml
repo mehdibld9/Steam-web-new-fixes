@@ -1091,6 +1091,7 @@ components:
       properties:
         username:
           type: string
+          description: Login username; website URLs are not allowed.
           minLength: 3
           maxLength: 30
         email:

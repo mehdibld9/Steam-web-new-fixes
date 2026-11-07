@@ -12,8 +12,15 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 
+function looksLikeUrl(value: string): boolean {
+  return /(?:[a-z][a-z\d+.-]*:\/\/|www\.)|(?:^|\s)(?:(?:[\w-]+\.)+[a-z]{2,}|(?:\d{1,3}\.){3}\d{1,3}|localhost)(?::\d+)?(?:[/?#]|\s|[^\w-]|$)|[/?#]/i.test(value);
+}
+
 const formSchema = z.object({
-  username: z.string().min(3, "Username must be at least 3 characters").max(30),
+  username: z.string()
+    .min(3, "Username must be at least 3 characters")
+    .max(30)
+    .refine((value) => !looksLikeUrl(value), "Username cannot be a website URL"),
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   agreeTerms: z.boolean().refine((v) => v === true, {

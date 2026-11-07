@@ -40,6 +40,10 @@ function getClientIp(req: Parameters<typeof router.post>[1] extends (req: infer 
 const ALLOWED_EMAIL_DOMAINS = ["gmail.com", "outlook.com", "hotmail.com", "yahoo.com", "yahoo.fr", "yahoo.co.uk", "hotmail.fr", "hotmail.co.uk", "live.com", "msn.com"];
 const REGISTRATION_CODE_COOLDOWN_MS = 60 * 1000;
 
+function looksLikeUrl(value: string): boolean {
+  return /(?:[a-z][a-z\d+.-]*:\/\/|www\.)|(?:^|\s)(?:(?:[\w-]+\.)+[a-z]{2,}|(?:\d{1,3}\.){3}\d{1,3}|localhost)(?::\d+)?(?:[/?#]|\s|[^\w-]|$)|[/?#]/i.test(value);
+}
+
 function createVerificationCode(): string {
   return String(crypto.randomInt(100000, 1000000));
 }
@@ -51,6 +55,10 @@ router.post("/register", async (req, res) => {
     return;
   }
   const { username, email, password } = parsed.data;
+  if (looksLikeUrl(username)) {
+    res.status(400).json({ error: "Username cannot be a website URL" });
+    return;
+  }
 
   // Only allow trusted email providers to reduce throwaway/bot accounts
   const emailDomain = email.split("@")[1]?.toLowerCase() ?? "";
@@ -545,6 +553,10 @@ router.put("/profile", requireAuth, async (req, res) => {
     const trimmed = displayName.trim();
     if (trimmed && (trimmed.length < 2 || trimmed.length > 30)) {
       res.status(400).json({ error: "Display name must be 2–30 characters" });
+      return;
+    }
+    if (trimmed && looksLikeUrl(trimmed)) {
+      res.status(400).json({ error: "Display name cannot be a website URL" });
       return;
     }
     updates.displayName = trimmed || null;

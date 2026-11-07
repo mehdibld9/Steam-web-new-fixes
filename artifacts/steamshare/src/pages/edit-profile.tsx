@@ -23,6 +23,10 @@ function containsBadWord(text: string): boolean {
   return BAD_WORDS.some((w) => lower.includes(w));
 }
 
+function looksLikeUrl(value: string): boolean {
+  return /(?:[a-z][a-z\d+.-]*:\/\/|www\.)|(?:^|\s)(?:(?:[\w-]+\.)+[a-z]{2,}|(?:\d{1,3}\.){3}\d{1,3}|localhost)(?::\d+)?(?:[/?#]|\s|[^\w-]|$)|[/?#]/i.test(value);
+}
+
 const BASIC_COLORS = [
   { hex: "#ef4444", label: "Red", animated: false },
   { hex: "#f97316", label: "Orange", animated: false },
@@ -223,6 +227,10 @@ export default function EditProfile() {
       toast({ title: "Display name must be 2–30 characters", variant: "destructive" });
       return;
     }
+    if (looksLikeUrl(trimmed)) {
+      toast({ title: "Display name cannot be a website URL", variant: "destructive" });
+      return;
+    }
     if (containsBadWord(trimmed)) {
       toast({ title: "Display name contains inappropriate content", variant: "destructive" });
       return;
@@ -410,6 +418,7 @@ export default function EditProfile() {
   const previewUrl = avatarUrl || me.avatarUrl || undefined;
   const currentDisplayName = (me as any).displayName || "";
   const displayedDisplayName = displayName || currentDisplayName;
+  const isUrlDisplayName = displayName.trim().length > 0 && looksLikeUrl(displayName.trim());
   const isBadWord = displayName.trim().length > 0 && containsBadWord(displayName.trim());
 
   return (
@@ -462,20 +471,25 @@ export default function EditProfile() {
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       maxLength={30}
-                      className={isBadWord ? "border-destructive focus:border-destructive h-10 text-sm" : "h-10 text-sm"}
+                      className={isBadWord || isUrlDisplayName ? "border-destructive focus:border-destructive h-10 text-sm" : "h-10 text-sm"}
                     />
+                    {isUrlDisplayName && (
+                      <p className="text-[11px] text-destructive flex items-center gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Display names cannot be website URLs.
+                      </p>
+                    )}
                     {isBadWord && (
                       <p className="text-[11px] text-destructive flex items-center gap-1">
                         <AlertTriangle className="h-3 w-3" /> This name contains inappropriate content.
                       </p>
                     )}
-                    {displayedDisplayName && !isBadWord && (
+                    {displayedDisplayName && !isBadWord && !isUrlDisplayName && (
                       <p className="text-[11px] text-muted-foreground break-words">Preview: <span className="text-foreground font-medium">{displayedDisplayName}</span></p>
                     )}
                   </div>
                   <Button
                     onClick={handleDisplayNameSave}
-                    disabled={!displayName.trim() || isBadWord || displayNameLoading}
+                    disabled={!displayName.trim() || isBadWord || isUrlDisplayName || displayNameLoading}
                     className="w-full h-10 text-sm"
                   >
                     {displayNameLoading ? "Saving…" : "Save Display Name"}

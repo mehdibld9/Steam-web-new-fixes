@@ -254,7 +254,7 @@ export default function AccountDetail() {
   const params = useParams();
   const id = parseInt(params.id || "0");
   const [, navigate] = useLocation();
-  const { data: user } = useGetMe();
+  const { data: user, isLoading: userLoading } = useGetMe();
   const {
     data: account,
     isLoading: accountLoading,
@@ -788,6 +788,22 @@ export default function AccountDetail() {
           {/* ── LEFT: Credentials + Comments ── */}
           <div className="col-span-1 md:col-span-2 space-y-4 sm:space-y-5">
             {/* Credentials panel */}
+            {userLoading ? (
+              <Skeleton className="h-[276px] w-full rounded-xl" />
+            ) : !user ? (
+              <div className="rounded-xl border border-primary/20 bg-card p-6 sm:p-8 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background">
+                  <Lock className="h-5 w-5 text-muted-foreground" />
+                </div>
+                <h3 className="mb-2 text-base font-bold">Login Required</h3>
+                <p className="mx-auto mb-5 max-w-sm text-sm text-muted-foreground">
+                  Sign in to view account access for this game. It&apos;s free and secure.
+                </p>
+                <Link href="/login">
+                  <Button className="min-w-40 font-bold">Sign in</Button>
+                </Link>
+              </div>
+            ) : (
             <div className="bg-card border border-border rounded-xl overflow-hidden">
               <div className="flex items-center gap-2 px-4 sm:px-5 py-3 border-b border-border bg-muted/20">
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1142,6 +1158,7 @@ export default function AccountDetail() {
                 )}
               </div>
             </div>
+            )}
 
             {/* Comments */}
             <div className="bg-card border border-border rounded-xl p-4 sm:p-6">

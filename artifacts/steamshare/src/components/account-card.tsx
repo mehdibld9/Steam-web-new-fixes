@@ -19,6 +19,15 @@ interface AccountCardProps {
   onUnpin?: (accountId: number) => void;
 }
 
+function formatCardDescription(description: string): string {
+  return description
+    .replace(/\[([^\]]+)\]\((?:https?:\/\/[^)\s]+)\)/gi, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/__(.+?)__/g, "$1")
+    .replace(/_(.+?)_/g, "$1")
+    .replace(/`(.+?)`/g, "$1");
+}
+
 export function AccountCard({
   account,
   isAdmin,
@@ -47,7 +56,7 @@ export function AccountCard({
 
             {/* Description */}
             <p className="text-sm text-muted-foreground line-clamp-1">
-              {account.description}
+              {formatCardDescription(account.description)}
             </p>
 
             {/* Games */}

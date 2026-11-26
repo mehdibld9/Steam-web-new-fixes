@@ -101,13 +101,9 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
   } = useQuery({
     queryKey: ["notifications"],
     queryFn: fetchNotifications,
-    enabled: !!user,
-    refetchInterval: 30_000,
+    enabled: !!user && bellOpen,
   });
-  const {
-    data: notifUnread = 0,
-    refetch: refetchNotificationCount,
-  } = useQuery({
+  const { data: notifUnread = 0 } = useQuery({
     queryKey: ["notifications-unread-count"],
     queryFn: async () => {
       const res = await fetch("/api/notifications/unread/count", {
@@ -118,9 +114,8 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
       return Number(data.count ?? 0);
     },
     enabled: !!user,
-    refetchInterval: 30_000,
+    refetchInterval: 120_000,
   });
-  const notifCount = appNotifications.filter((notification) => !notification.isRead).length;
 
   const openBell = async () => {
     if (!bellOpen) {
@@ -131,7 +126,10 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
         deadlines[String(notification.id)] ??= expiresAt;
       }
       writeViewedNotificationDeadlines(deadlines);
-      await refetchNotificationCount();
+      queryClient.setQueryData(
+        ["notifications-unread-count"],
+        latestNotifications.filter((notification) => !notification.isRead).length,
+      );
     }
     setBellOpen(!bellOpen);
   };
@@ -377,9 +375,9 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
                     title="Notifications"
                   >
                     <Bell className="h-5 w-5" />
-                    {notifCount > 0 && (
+                    {notifUnread > 0 && (
                       <span className="absolute -top-0.5 -right-0.5 bg-red-500 text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                        {notifCount > 9 ? "9+" : notifCount}
+                        {notifUnread > 9 ? "9+" : notifUnread}
                       </span>
                     )}
                   </button>

@@ -8,6 +8,7 @@ import { ArrowLeft, ExternalLink, Shield, ShieldOff } from "lucide-react";
 import { Link } from "wouter";
 
 const TWO_FACTOR_QUERY_KEY = ["admin-two-factor"];
+const REGISTRATION_VERIFICATION_QUERY_KEY = ["admin-registration-verification"];
 const FULL_ADMIN_PANEL_URL = "https://admin.steamfamily.xyz";
 
 export default function AdminSettings() {
@@ -23,6 +24,21 @@ export default function AdminSettings() {
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         throw new Error(error.error || "Failed to load two-factor settings.");
+      }
+      return response.json() as Promise<{ enabled: boolean }>;
+    },
+    enabled: !!user?.isAdmin,
+  });
+
+  const registrationVerificationQuery = useQuery({
+    queryKey: REGISTRATION_VERIFICATION_QUERY_KEY,
+    queryFn: async () => {
+      const response = await fetch("/api/site-settings/registration-verification", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to load registration verification settings.");
       }
       return response.json() as Promise<{ enabled: boolean }>;
     },
@@ -45,6 +61,30 @@ export default function AdminSettings() {
     },
     onSuccess: (settings) => {
       queryClient.setQueryData(TWO_FACTOR_QUERY_KEY, settings);
+    },
+  });
+
+  const updateRegistrationVerification = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await fetch("/api/site-settings/smtp/registration-verification", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.error || "Failed to update registration verification settings.");
+      }
+      return response.json() as Promise<{ register_email_verification_enabled: boolean }>;
+    },
+    onSuccess: (settings) => {
+      queryClient.setQueryData(REGISTRATION_VERIFICATION_QUERY_KEY, {
+        enabled: settings.register_email_verification_enabled,
+      });
+    },
+    onError: () => {
+      queryClient.invalidateQueries({ queryKey: REGISTRATION_VERIFICATION_QUERY_KEY });
     },
   });
 
@@ -137,6 +177,44 @@ export default function AdminSettings() {
               {updateSetting.error instanceof Error
                 ? updateSetting.error.message
                 : "Failed to update two-factor settings."}
+            </p>
+          )}
+        </section>
+
+        <section className="rounded-xl border border-border bg-card p-5 sm:p-6 space-y-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h2 className="font-semibold">Registration email verification</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {registrationVerificationQuery.data?.enabled
+                  ? "New users must enter an email code before registration is complete."
+                  : "Disabled — new users can register immediately without an email code."}
+              </p>
+            </div>
+            {registrationVerificationQuery.isLoading ? (
+              <Skeleton className="h-5 w-9 shrink-0 rounded-full" />
+            ) : registrationVerificationQuery.data ? (
+              <Switch
+                aria-label="Require email verification during registration"
+                checked={registrationVerificationQuery.data.enabled}
+                onCheckedChange={(enabled) => updateRegistrationVerification.mutate(enabled)}
+                disabled={updateRegistrationVerification.isPending || registrationVerificationQuery.isError}
+              />
+            ) : null}
+          </div>
+
+          {registrationVerificationQuery.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              {registrationVerificationQuery.error instanceof Error
+                ? registrationVerificationQuery.error.message
+                : "Failed to load registration verification settings."}
+            </p>
+          )}
+          {updateRegistrationVerification.isError && (
+            <p role="alert" className="text-sm text-destructive">
+              {updateRegistrationVerification.error instanceof Error
+                ? updateRegistrationVerification.error.message
+                : "Failed to update registration verification settings."}
             </p>
           )}
         </section>

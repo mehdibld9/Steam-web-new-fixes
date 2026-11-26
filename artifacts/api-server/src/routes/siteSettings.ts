@@ -4,7 +4,13 @@ import { db, siteSettingsTable, adsTable } from "@workspace/db";
 import { eq, asc, and, inArray } from "drizzle-orm";
 import { requireAdmin } from "../middlewares/auth";
 import { invalidateWordCache } from "../lib/contentFilter";
-import { XP_DEFAULTS, XpSettingKey, getAllXpSettings, invalidateSettingsCache } from "../lib/settings";
+import {
+  XP_DEFAULTS,
+  XpSettingKey,
+  getAllXpSettings,
+  invalidateSettingsCache,
+  isRegistrationEmailVerificationEnabled,
+} from "../lib/settings";
 
 const router = express.Router();
 
@@ -289,6 +295,11 @@ router.put("/smtp/registration-verification", requireAdmin, async (req, res) => 
     });
 
   res.json({ register_email_verification_enabled: enabled });
+});
+
+// GET /site-settings/registration-verification — admin only
+router.get("/registration-verification", requireAdmin, async (_req, res) => {
+  res.json({ enabled: await isRegistrationEmailVerificationEnabled() });
 });
 
 // POST /site-settings/smtp/test — admin only, send a test email

@@ -53,9 +53,11 @@ export default function Register() {
       }
       return response.json() as Promise<{ emailVerificationEnabled: boolean }>;
     },
+    staleTime: 0,
+    refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
-  const emailVerificationEnabled = registrationSettings?.emailVerificationEnabled ?? true;
+  const emailVerificationEnabled = registrationSettings?.emailVerificationEnabled === true;
 
   useEffect(() => {
     if (codeCooldown <= 0) return;
@@ -85,6 +87,9 @@ export default function Register() {
         data: { username: values.username, email: values.email, password: values.password },
       });
       if ("requiresRegistrationTwoFactor" in result) {
+        queryClient.setQueryData(["registration-settings"], {
+          emailVerificationEnabled: true,
+        });
         setRequiresVerification(true);
         startCodeCooldown();
         setTimeout(() => verificationInputRef.current?.focus(), 100);
@@ -127,8 +132,17 @@ export default function Register() {
     }
     try {
       const values = form.getValues();
-      await registerUser.mutateAsync({
+      const result = await registerUser.mutateAsync({
         data: { username: values.username, email: values.email, password: values.password },
+      });
+      if (!("requiresRegistrationTwoFactor" in result)) {
+        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+        setSuccess(true);
+        setTimeout(() => setLocation("/"), 600);
+        return;
+      }
+      queryClient.setQueryData(["registration-settings"], {
+        emailVerificationEnabled: true,
       });
       setRequiresVerification(true);
       startCodeCooldown();

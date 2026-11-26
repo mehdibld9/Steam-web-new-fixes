@@ -2036,6 +2036,28 @@ function SmtpSettingsSection() {
     onError: (e: any) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  const registrationVerificationMutation = useMutation({
+    mutationFn: async ({ enabled }: { enabled: boolean; previous: boolean }) => {
+      const res = await fetch("/api/site-settings/smtp/registration-verification", {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || "Failed to save registration verification setting.");
+      return data as { register_email_verification_enabled: boolean };
+    },
+    onSuccess: (data) => {
+      setEmailVerifEnabled(data.register_email_verification_enabled);
+      toast({ title: "Registration verification setting saved" });
+    },
+    onError: (e: Error, variables) => {
+      setEmailVerifEnabled(variables.previous);
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    },
+  });
+
   const testMutation = useMutation({
     mutationFn: async () => {
       const res = await fetch("/api/site-settings/smtp/test", {
@@ -2071,11 +2093,19 @@ function SmtpSettingsSection() {
           <p className="text-sm font-medium text-foreground">Require email verification on registration</p>
           <p className="text-xs text-muted-foreground mt-0.5">
             {emailVerifEnabled
-              ? "New users must verify their email before their account is activated."
-              : "Disabled — users can register and log in immediately without email verification."}
+              ? "New users must verify their email before their account is activated. Changes save immediately."
+              : "Disabled — users can register and log in immediately without email verification. Changes save immediately."}
           </p>
         </div>
-        <Switch checked={emailVerifEnabled} onCheckedChange={setEmailVerifEnabled} />
+        <Switch
+          checked={emailVerifEnabled}
+          onCheckedChange={(enabled) => {
+            const previous = emailVerifEnabled;
+            setEmailVerifEnabled(enabled);
+            registrationVerificationMutation.mutate({ enabled, previous });
+          }}
+          disabled={registrationVerificationMutation.isPending}
+        />
       </div>
       <div className="space-y-3">
         <div className="grid grid-cols-3 gap-3">

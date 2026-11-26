@@ -271,6 +271,26 @@ router.get("/smtp", requireAdmin, async (_req, res) => {
   });
 });
 
+// PUT /site-settings/smtp/registration-verification — admin only
+router.put("/smtp/registration-verification", requireAdmin, async (req, res) => {
+  const { enabled } = req.body as { enabled?: unknown };
+  if (typeof enabled !== "boolean") {
+    res.status(400).json({ error: "A boolean enabled value is required." });
+    return;
+  }
+
+  const value = enabled ? "1" : "0";
+  await db
+    .insert(siteSettingsTable)
+    .values({ key: "register_email_verification_enabled", value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: siteSettingsTable.key,
+      set: { value, updatedAt: new Date() },
+    });
+
+  res.json({ register_email_verification_enabled: enabled });
+});
+
 // POST /site-settings/smtp/test — admin only, send a test email
 router.post("/smtp/test", requireAdmin, async (req, res) => {
   const { to } = req.body as { to: string };

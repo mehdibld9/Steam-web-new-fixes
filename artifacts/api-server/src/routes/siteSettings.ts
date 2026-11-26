@@ -86,6 +86,36 @@ router.put("/contact", requireAdmin, async (req, res) => {
   res.json({ message: "Contact info updated" });
 });
 
+// GET /site-settings/two-factor — admin only
+router.get("/two-factor", requireAdmin, async (_req, res) => {
+  const [row] = await db
+    .select({ value: siteSettingsTable.value })
+    .from(siteSettingsTable)
+    .where(eq(siteSettingsTable.key, "two_factor_system_enabled"))
+    .limit(1);
+  res.json({ enabled: row?.value !== "0" });
+});
+
+// PUT /site-settings/two-factor — admin only
+router.put("/two-factor", requireAdmin, async (req, res) => {
+  const enabled = req.body?.enabled as unknown;
+  if (typeof enabled !== "boolean") {
+    res.status(400).json({ error: "enabled must be a boolean" });
+    return;
+  }
+
+  const value = enabled ? "1" : "0";
+  await db
+    .insert(siteSettingsTable)
+    .values({ key: "two_factor_system_enabled", value, updatedAt: new Date() })
+    .onConflictDoUpdate({
+      target: siteSettingsTable.key,
+      set: { value, updatedAt: new Date() },
+    });
+
+  res.json({ enabled });
+});
+
 
 // GET /site-settings/xp-points — admin only, returns all XP/points reward settings
 router.get("/xp-points", requireAdmin, async (_req, res) => {

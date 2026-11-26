@@ -1,6 +1,6 @@
 // @ts-nocheck
 import express from "express";
-import { getSetting } from "../lib/settings";
+import { getSetting, isTwoFactorSystemEnabled } from "../lib/settings";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db, usersTable, ipBansTable } from "@workspace/db";
@@ -327,7 +327,7 @@ router.post("/login", async (req, res) => {
   await db.update(usersTable).set({ lastLoginIp: loginIpRaw, lastLoginAt: new Date() }).where(eq(usersTable.id, user.id));
 
   // --- 2FA check ---
-  if (user.twoFactorEnabled) {
+  if (user.twoFactorEnabled && await isTwoFactorSystemEnabled()) {
     const code = createVerificationCode();
     const codeHash = await bcrypt.hash(code, 10);
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
@@ -443,16 +443,23 @@ router.post("/verify-2fa", async (req, res) => {
 
 // GET /auth/2fa-status — returns whether 2FA is enabled for the logged-in user
 router.get("/2fa-status", requireAuth, async (req, res) => {
-  const [user] = await db
-    .select({ twoFactorEnabled: usersTable.twoFactorEnabled })
-    .from(usersTable)
-    .where(eq(usersTable.id, req.session.userId!))
-    .limit(1);
-  res.json({ enabled: user?.twoFactorEnabled ?? false });
+  const [[user], systemEnabled] = await Promise.all([
+    db
+      .select({ twoFactorEnabled: usersTable.twoFactorEnabled })
+      .from(usersTable)
+      .where(eq(usersTable.id, req.session.userId!))
+      .limit(1),
+    isTwoFactorSystemEnabled(),
+  ]);
+  res.json({ enabled: user?.twoFactorEnabled ?? false, systemEnabled });
 });
 
 // POST /auth/2fa/enable — enable 2FA for the logged-in user
 router.post("/2fa/enable", requireAuth, async (req, res) => {
+  if (!(await isTwoFactorSystemEnabled())) {
+    res.status(403).json({ error: "Two-factor authentication is disabled by the administrator." });
+    return;
+  }
   await db.update(usersTable)
     .set({ twoFactorEnabled: true })
     .where(eq(usersTable.id, req.session.userId!));
@@ -697,7 +704,7 @@ router.delete("/account", requireAuth, async (req, res) => {
     return;
   }
 
-  if (user.twoFactorEnabled) {
+  if (user.twoFactorEnabled && await isTwoFactorSystemEnabled()) {
     const sixDigitCode = typeof code === "string" ? code.trim() : "";
 
     if (!sixDigitCode) {

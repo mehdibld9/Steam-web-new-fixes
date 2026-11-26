@@ -17,6 +17,16 @@ export const XP_DEFAULTS = {
 
 export type XpSettingKey = keyof typeof XP_DEFAULTS;
 
+export async function isTwoFactorSystemEnabled(): Promise<boolean> {
+  const [row] = await db
+    .select({ value: siteSettingsTable.value })
+    .from(siteSettingsTable)
+    .where(eq(siteSettingsTable.key, "two_factor_system_enabled"))
+    .limit(1);
+
+  return row?.value !== "0";
+}
+
 // ── In-memory TTL cache ──────────────────────────────────────────────────────
 // Avoids a DB round-trip on every user action (comments, likes, uploads, etc.).
 // Settings changes take effect within 60 s without requiring a server restart.

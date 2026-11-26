@@ -334,14 +334,21 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
 
             {user ? (
               <>
-                {(user.isAdmin || (user as any).isModerator) && (
+                {user.isAdmin ? (
+                  <Link href="/admin-settings">
+                    <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-primary/40 text-primary text-sm font-medium hover:bg-primary/10 transition-colors">
+                      <Shield className="h-3.5 w-3.5" />
+                      <span className="hidden sm:inline">Admin</span>
+                    </button>
+                  </Link>
+                ) : (user as any).isModerator ? (
                   <a href="https://admin.steamfamily.xyz" target="_blank" rel="noopener noreferrer">
                     <button className="flex items-center gap-1.5 px-3 py-1.5 rounded border border-primary/40 text-primary text-sm font-medium hover:bg-primary/10 transition-colors">
                       <Shield className="h-3.5 w-3.5" />
-                      <span className="hidden sm:inline">{user.isAdmin ? "Admin" : "Mod"}</span>
+                      <span className="hidden sm:inline">Mod</span>
                     </button>
                   </a>
-                )}
+                ) : null}
 
                 {/* Post Account */}
                 <Link href="/submit">
@@ -628,7 +635,20 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
                       <ChevronRight className="h-4 w-4 opacity-40" />
                     </button>
                   </Link>
-                  {(user.isAdmin || (user as any).isModerator) && (
+                  {user.isAdmin ? (
+                    <Link href="/admin-settings" className="block">
+                      <button
+                        onClick={() => setMenuOpen(false)}
+                        className="w-full flex items-center justify-between px-5 py-3 text-sm font-medium text-primary hover:bg-primary/10 border-l-2 border-transparent transition-colors"
+                      >
+                        <span className="flex items-center gap-3">
+                          <Shield className="h-4 w-4" />
+                          Admin Panel
+                        </span>
+                        <ChevronRight className="h-4 w-4 opacity-40" />
+                      </button>
+                    </Link>
+                  ) : (user as any).isModerator ? (
                     <a href="https://admin.steamfamily.xyz" target="_blank" rel="noopener noreferrer" className="block">
                       <button
                         onClick={() => setMenuOpen(false)}
@@ -636,12 +656,12 @@ export function Layout({ children, noFooter }: { children: React.ReactNode; noFo
                       >
                         <span className="flex items-center gap-3">
                           <Shield className="h-4 w-4" />
-                          {user.isAdmin ? "Admin Panel" : "Mod Panel"}
+                          Mod Panel
                         </span>
                         <ChevronRight className="h-4 w-4 opacity-40" />
                       </button>
                     </a>
-                  )}
+                  ) : null}
                 </>
               ) : (
                 <>

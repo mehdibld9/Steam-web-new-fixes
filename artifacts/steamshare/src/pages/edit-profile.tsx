@@ -56,12 +56,12 @@ function TwoFactorCard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ["2fa-status"],
     queryFn: async () => {
       const res = await fetch("/api/auth/2fa-status", { credentials: "include" });
-      if (!res.ok) return { enabled: false };
-      return res.json() as Promise<{ enabled: boolean }>;
+      if (!res.ok) throw new Error("Failed to load two-factor authentication status.");
+      return res.json() as Promise<{ enabled: boolean; systemEnabled: boolean }>;
     },
   });
 
@@ -92,7 +92,15 @@ function TwoFactorCard() {
   });
 
   const enabled = data?.enabled ?? false;
-  const busy = enableMutation.isPending || disableMutation.isPending || isLoading;
+  const systemEnabled = data?.systemEnabled ?? false;
+  const busy = enableMutation.isPending || disableMutation.isPending || isLoading || isError;
+  const statusMessage = isError
+    ? error instanceof Error ? error.message : "Could not load two-factor status."
+    : !systemEnabled
+      ? "Email two-factor authentication is temporarily disabled by the administrator."
+      : enabled
+        ? "A 6-digit code is emailed to you each time you sign in."
+        : "Add an extra layer of security — get a code by email every login.";
 
   return (
     <div className="bg-card border border-border rounded-xl p-6 space-y-4">
@@ -101,25 +109,31 @@ function TwoFactorCard() {
       </h2>
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${enabled ? "bg-green-500/10 border border-green-500/20" : "bg-muted border border-border"}`}>
-            {enabled
+          <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${enabled && systemEnabled ? "bg-green-500/10 border border-green-500/20" : "bg-muted border border-border"}`}>
+            {enabled && systemEnabled
               ? <ShieldCheck className="h-5 w-5 text-green-400" />
               : <ShieldOff className="h-5 w-5 text-muted-foreground" />
             }
           </div>
           <div>
             <p className="font-semibold text-sm text-foreground flex items-center gap-2">
-              {enabled ? "Enabled" : "Disabled"}
-              {enabled && <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 font-bold">ON</span>}
+              {isError ? "Status unavailable" : !systemEnabled ? "Unavailable" : enabled ? "Enabled" : "Disabled"}
+              {!isError && systemEnabled && enabled && <span className="text-[10px] bg-green-500/15 text-green-400 border border-green-500/30 rounded-full px-2 py-0.5 font-bold">ON</span>}
             </p>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {enabled
-                ? "A 6-digit code is emailed to you each time you sign in."
-                : "Add an extra layer of security — get a code by email every login."}
+              {statusMessage}
             </p>
           </div>
         </div>
-        {enabled ? (
+        {isError ? (
+          <Button size="sm" variant="outline" className="shrink-0" disabled>
+            Unavailable
+          </Button>
+        ) : !systemEnabled ? (
+          <Button size="sm" variant="outline" className="shrink-0" disabled>
+            Unavailable
+          </Button>
+        ) : enabled ? (
           <Button size="sm" variant="outline" className="shrink-0 text-destructive border-destructive/30 hover:bg-destructive/10"
             onClick={() => disableMutation.mutate()} disabled={busy}>
             {disableMutation.isPending ? "Disabling…" : "Disable"}

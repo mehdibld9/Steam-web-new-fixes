@@ -42,7 +42,7 @@ export default function Register() {
   const [success, setSuccess] = useState(false);
   const verificationInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: registrationSettings, isLoading: registrationSettingsLoading, isError: registrationSettingsError } = useQuery({
+  const { data: registrationSettings, isLoading: registrationSettingsLoading, isFetching: registrationSettingsFetching, isError: registrationSettingsError } = useQuery({
     queryKey: ["registration-settings"],
     queryFn: async () => {
       const response = await fetch("/api/auth/registration-settings", {
@@ -57,7 +57,10 @@ export default function Register() {
     refetchOnMount: "always",
     refetchOnWindowFocus: true,
   });
-  const emailVerificationEnabled = registrationSettings?.emailVerificationEnabled === true;
+  const emailVerificationEnabled =
+    !registrationSettingsFetching &&
+    !registrationSettingsError &&
+    registrationSettings?.emailVerificationEnabled === true;
 
   useEffect(() => {
     if (codeCooldown <= 0) return;
@@ -361,7 +364,7 @@ export default function Register() {
                   <Button
                     type="submit"
                     className="w-full h-12 font-bold rounded-xl text-base"
-                    disabled={registerUser.isPending || registrationSettingsLoading || registrationSettingsError}
+                    disabled={registerUser.isPending || registrationSettingsLoading || registrationSettingsFetching || registrationSettingsError}
                     data-testid="button-register-submit"
                   >
                     {registerUser.isPending

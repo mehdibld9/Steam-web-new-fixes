@@ -1,6 +1,10 @@
 // @ts-nocheck
 import express from "express";
-import { getSetting, isTwoFactorSystemEnabled } from "../lib/settings";
+import {
+  getSetting,
+  isRegistrationEmailVerificationEnabled,
+  isTwoFactorSystemEnabled,
+} from "../lib/settings";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import { db, usersTable, ipBansTable } from "@workspace/db";
@@ -48,6 +52,13 @@ function createVerificationCode(): string {
   return String(crypto.randomInt(100000, 1000000));
 }
 
+router.get("/registration-settings", async (_req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({
+    emailVerificationEnabled: await isRegistrationEmailVerificationEnabled(),
+  });
+});
+
 router.post("/register", async (req, res) => {
   const parsed = RegisterBody.safeParse(req.body);
   if (!parsed.success) {
@@ -86,6 +97,31 @@ router.post("/register", async (req, res) => {
   const existingEmail = await db.select().from(usersTable).where(eq(usersTable.email, email)).limit(1);
   if (existingEmail.length > 0) {
     res.status(409).json({ error: "Email already in use" });
+    return;
+  }
+
+  if (!(await isRegistrationEmailVerificationEnabled())) {
+    const [created] = await db.insert(usersTable).values({
+      username,
+      email,
+      passwordHash: await bcrypt.hash(password, 10),
+      registrationIp: ip,
+      points: await getSetting("points_registration"),
+      emailVerified: true,
+    }).returning();
+
+    req.session.regenerate((err: any) => {
+      if (err) { res.status(500).json({ error: "Session error" }); return; }
+      req.session.userId = created.id;
+      req.session.isAdmin = created.isAdmin;
+      req.session.isModerator = created.isModerator;
+      req.session._banCheckedAt = Date.now();
+      req.session.save((saveErr: any) => {
+        if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
+        const { passwordHash: _, ...safeUser } = created;
+        res.status(201).json(normalizePremiumVisuals(safeUser));
+      });
+    });
     return;
   }
 
@@ -137,6 +173,44 @@ router.post("/verify-registration", async (req, res) => {
     res.status(400).json({ error: "No pending registration. Please register again." });
     return;
   }
+
+  if (!(await isRegistrationEmailVerificationEnabled())) {
+    const [user] = pendingUserId
+      ? await db.select().from(usersTable).where(eq(usersTable.id, pendingUserId)).limit(1)
+      : [];
+    if (pendingUserId && (!user || user.emailVerified)) {
+      res.status(400).json({ error: "This registration is no longer pending." });
+      return;
+    }
+
+    const activated = pendingRegistration
+      ? (await db.insert(usersTable).values({
+          username: pendingRegistration.username,
+          email: pendingRegistration.email,
+          passwordHash: pendingRegistration.passwordHash,
+          registrationIp: pendingRegistration.registrationIp,
+          points: await getSetting("points_registration"),
+          emailVerified: true,
+        }).returning())[0]
+      : (await db.update(usersTable)
+          .set({ emailVerified: true, twoFactorCode: null, twoFactorCodeExpiresAt: null })
+          .where(eq(usersTable.id, user.id))
+          .returning())[0];
+
+    delete (req.session as any).pendingRegistration;
+    delete (req.session as any).pendingRegistrationUserId;
+    req.session.userId = activated.id;
+    req.session.isAdmin = activated.isAdmin;
+    req.session.isModerator = activated.isModerator;
+    req.session._banCheckedAt = Date.now();
+    req.session.save((saveErr: any) => {
+      if (saveErr) { res.status(500).json({ error: "Session error" }); return; }
+      const { passwordHash: _, ...safeUser } = activated;
+      res.status(200).json(normalizePremiumVisuals(safeUser));
+    });
+    return;
+  }
+
   if (!code || typeof code !== "string" || !/^\d{6}$/.test(code.trim())) {
     res.status(400).json({ error: "Enter the 6-digit verification code." });
     return;
@@ -286,7 +360,7 @@ router.post("/login", async (req, res) => {
     return;
   }
 
-  if (!user.emailVerified) {
+  if (!user.emailVerified && await isRegistrationEmailVerificationEnabled()) {
     const verificationCode = createVerificationCode();
     const codeHash = await bcrypt.hash(verificationCode, 10);
     await db.update(usersTable)
@@ -298,6 +372,15 @@ router.post("/login", async (req, res) => {
     } catch {
       res.status(500).json({ error: "We couldn't send the verification code. Please try again." });
       return;
+    }
+
+    if (!user.emailVerified) {
+      await db.update(usersTable)
+        .set({ emailVerified: true, twoFactorCode: null, twoFactorCodeExpiresAt: null })
+        .where(eq(usersTable.id, user.id));
+      user.emailVerified = true;
+      user.twoFactorCode = null;
+      user.twoFactorCodeExpiresAt = null;
     }
 
     req.session.regenerate((err: any) => {

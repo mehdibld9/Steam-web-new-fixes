@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { CheckCircle2, Eye, EyeOff, Zap, X, ShieldCheck, Mail } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
 
 function looksLikeUrl(value: string): boolean {
@@ -41,6 +41,21 @@ export default function Register() {
   const [codeCooldown, setCodeCooldown] = useState(0);
   const [success, setSuccess] = useState(false);
   const verificationInputRef = useRef<HTMLInputElement>(null);
+
+  const { data: registrationSettings, isLoading: registrationSettingsLoading, isError: registrationSettingsError } = useQuery({
+    queryKey: ["registration-settings"],
+    queryFn: async () => {
+      const response = await fetch("/api/auth/registration-settings", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to load registration settings.");
+      }
+      return response.json() as Promise<{ emailVerificationEnabled: boolean }>;
+    },
+    refetchOnWindowFocus: true,
+  });
+  const emailVerificationEnabled = registrationSettings?.emailVerificationEnabled ?? true;
 
   useEffect(() => {
     if (codeCooldown <= 0) return;
@@ -232,37 +247,44 @@ export default function Register() {
                     )}
                   />
 
-                  <div className="space-y-1.5">
-                    <label className="text-sm font-semibold text-foreground">Verify Code</label>
-                    <div className="flex gap-2">
-                      <Input
-                        ref={verificationInputRef}
-                        value={verificationCode}
-                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-                        placeholder="123456"
-                        maxLength={6}
-                        className="h-12 flex-1 bg-secondary/40 border-border focus:border-primary/60 rounded-xl font-mono tracking-widest"
-                      />
-                      <Button type="button" variant="outline" className="h-12 rounded-xl px-4" onClick={onGetCode} disabled={registerUser.isPending || verificationLoading || codeCooldown > 0}>
-                        {registerUser.isPending || verificationLoading
-                          ? "Sending…"
-                          : codeCooldown > 0
-                            ? `Wait ${codeCooldown}s`
-                            : requiresVerification
-                              ? "Resend Code"
-                              : "Get Code"}
-                      </Button>
-                    </div>
-                    {requiresVerification && (
+                  {emailVerificationEnabled && (
+                    <div className="space-y-1.5">
+                      <label className="text-sm font-semibold text-foreground">Verify Code</label>
+                      <div className="flex gap-2">
+                        <Input
+                          ref={verificationInputRef}
+                          value={verificationCode}
+                          onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                          placeholder="123456"
+                          maxLength={6}
+                          className="h-12 flex-1 bg-secondary/40 border-border focus:border-primary/60 rounded-xl font-mono tracking-widest"
+                        />
+                        <Button type="button" variant="outline" className="h-12 rounded-xl px-4" onClick={onGetCode} disabled={registerUser.isPending || verificationLoading || codeCooldown > 0}>
+                          {registerUser.isPending || verificationLoading
+                            ? "Sending…"
+                            : codeCooldown > 0
+                              ? `Wait ${codeCooldown}s`
+                              : requiresVerification
+                                ? "Resend Code"
+                                : "Get Code"}
+                        </Button>
+                      </div>
+                      {requiresVerification && (
+                        <p className="text-xs text-muted-foreground">
+                          Enter the code sent to your email. It expires in 10 minutes.
+                        </p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        Enter the code sent to your email. It expires in 10 minutes.
+                        No code? Check your spam folder.
                       </p>
-                    )}
-                    <p className="text-xs text-muted-foreground">
-                      No code? Check your spam folder.
+                      {verificationError && <p className="text-xs text-red-400">{verificationError}</p>}
+                    </div>
+                  )}
+                  {registrationSettingsError && (
+                    <p role="alert" className="text-xs text-red-400">
+                      Could not load registration settings. Please refresh and try again.
                     </p>
-                    {verificationError && <p className="text-xs text-red-400">{verificationError}</p>}
-                  </div>
+                  )}
 
                   <FormField
                     control={form.control}
@@ -325,12 +347,12 @@ export default function Register() {
                   <Button
                     type="submit"
                     className="w-full h-12 font-bold rounded-xl text-base"
-                    disabled={registerUser.isPending}
+                    disabled={registerUser.isPending || registrationSettingsLoading || registrationSettingsError}
                     data-testid="button-register-submit"
                   >
                     {registerUser.isPending
                       ? "Creating account…"
-                      : requiresVerification
+                      : requiresVerification && emailVerificationEnabled
                         ? "Verify & Create Account"
                         : "Create Account"}
                   </Button>

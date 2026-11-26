@@ -27,6 +27,16 @@ export async function isTwoFactorSystemEnabled(): Promise<boolean> {
   return row?.value !== "0";
 }
 
+export async function isRegistrationEmailVerificationEnabled(): Promise<boolean> {
+  const [row] = await db
+    .select({ value: siteSettingsTable.value })
+    .from(siteSettingsTable)
+    .where(eq(siteSettingsTable.key, "register_email_verification_enabled"))
+    .limit(1);
+
+  return row?.value !== "0";
+}
+
 // ── In-memory TTL cache ──────────────────────────────────────────────────────
 // Avoids a DB round-trip on every user action (comments, likes, uploads, etc.).
 // Settings changes take effect within 60 s without requiring a server restart.
